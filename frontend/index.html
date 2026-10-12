@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeetWise — AI-Powered Intelligent Meeting Planner</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/liquid.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-page="dashboard">
+  <!-- Calm Liquid Ripple Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="calm" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <div class="brand-icon">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-badge">AI Planner</span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/schedule">Schedule Meeting</a>
+        <a class="nav-link" href="/participants">Team Directory</a>
+      </nav>
+      <div id="user-nav-container" class="user-profile-nav">
+        <!-- Rendered dynamically by app.js: user pill + role badge + logout button -->
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">✨ AI INTERVAL INTERSECTION SCHEDULER</p>
+        <h1 id="welcome-heading">Smart scheduling across busy calendars & timezones.</h1>
+        <p>Eliminate endless back-and-forth emails. MeetWise scans everyone's working hours, subtracts busy intervals, and finds the ideal time slot in seconds.</p>
+      </div>
+      <a class="button primary" href="/schedule">
+        <span>Schedule Meeting</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </section>
+
+    <section class="stats">
+      <article class="stat-card">
+        <span class="stat-icon">🕒</span>
+        <div class="stat-info">
+          <span class="muted">Upcoming Meetings</span>
+          <strong id="meeting-count">—</strong>
+        </div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon">👥</span>
+        <div class="stat-info">
+          <span class="muted">Team Participants</span>
+          <strong id="participant-count">—</strong>
+        </div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon">🔔</span>
+        <div class="stat-info">
+          <span class="muted">Reminders Delivered</span>
+          <strong id="reminder-count">—</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="dashboard-grid">
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CALENDAR OVERVIEW</p>
+            <h2>Scheduled Meetings</h2>
+          </div>
+          <a class="button secondary" href="/schedule">+ New Meeting</a>
+        </div>
+        <div id="meeting-list" class="meeting-list">
+          <p class="muted">Loading scheduled meetings…</p>
+        </div>
+      </section>
+
+      <aside class="panel notification-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">REMINDER DISPATCH</p>
+            <h2>Live Notifications</h2>
+          </div>
+          <button class="button secondary" id="check-reminders-btn" type="button" title="Check & trigger due notifications">Check Due</button>
+        </div>
+        <div id="notification-list">
+          <p class="muted">Loading notifications…</p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Admin User Management Panel (Rendered only for role=admin) -->
+    <section id="admin-panel" class="admin-panel" style="display: none;">
+      <div class="admin-panel-header">
+        <div>
+          <p class="eyebrow">ADMINISTRATION</p>
+          <h2>Workspace Users & Access</h2>
+        </div>
+        <span class="user-role-badge admin">Admin Access Only</span>
+      </div>
+      <div style="overflow-x: auto;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Current Role</th>
+              <th>Joined Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="admin-users-list">
+            <tr><td colspan="5" class="muted">Loading users…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Accessible Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmation</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="modal-message" class="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
+        <button type="button" class="button primary" data-modal-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>MeetWise · AI-Powered Intelligent Meeting Planner for Viva & Modern Teams</footer>
+</body>
+</html>
