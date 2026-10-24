@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Intelligent Meeting Scheduler</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen font-sans">
+
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-950/50 backdrop-blur px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center gap-3">
+      <div class="bg-indigo-600 p-2 rounded-lg text-white">
+        <i class="fa-solid me-1 fa-calendar-check text-xl"></i>
+      </div>
+      <h1 class="text-xl font-bold tracking-wide">SmartSchedule <span class="text-indigo-400 text-xs px-2 py-0.5 rounded bg-indigo-950 border border-indigo-800">AI</span></h1>
+    </div>
+    <nav class="flex gap-4 text-sm text-slate-400">
+      <a href="#" class="text-indigo-400 font-medium">Schedule</a>
+      <a href="#" class="hover:text-slate-200">Dashboard</a>
+      <a href="#" class="hover:text-slate-200">Team Calendars</a>
+    </nav>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
+
+    <!-- Left Column: Form Controls -->
+    <section class="lg:col-span-5 bg-slate-950 p-6 rounded-xl border border-slate-800 shadow-xl">
+      <h2 class="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+        <i class="fa-solid fa-sliders text-indigo-400"></i> Meeting Details
+      </h2>
+
+      <form id="scheduleForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Meeting Title</label>
+          <input type="text" id="title" placeholder="Project Sync / Sprint Review" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Duration</label>
+            <select id="duration" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option value="15">15 mins</option>
+              <option value="30" selected>30 mins</option>
+              <option value="45">45 mins</option>
+              <option value="60">60 mins</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-400 mb-1">Priority</label>
+            <select id="priority" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High (Override Soft Locks)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Required Participants</label>
+          <div class="space-y-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80 max-h-40 overflow-y-auto">
+            <label class="flex items-center gap-2 text-sm cursor-pointer hover:text-indigo-300">
+              <input type="checkbox" value="alice@company.com" checked class="rounded accent-indigo-500">
+              <span>Alice Johnson <span class="text-xs text-slate-500">(Product Lead)</span></span>
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer hover:text-indigo-300">
+              <input type="checkbox" value="bob@company.com" checked class="rounded accent-indigo-500">
+              <span>Bob Smith <span class="text-xs text-slate-500">(Senior Backend Developer)</span></span>
+            </label>
+            <label class="flex items-center gap-2 text-sm cursor-pointer hover:text-indigo-300">
+              <input type="checkbox" value="carol@company.com" class="rounded accent-indigo-500">
+              <span>Carol White <span class="text-xs text-slate-500">(UI/UX Designer)</span></span>
+            </label>
+          </div>
+        </div>
+
+        <button type="button" onclick="findSlots()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-medium py-2.5 rounded-lg text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/20">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> Find Optimal Slots
+        </button>
+      </form>
+    </section>
+
+    <!-- Right Column: Results & AI Recommendations -->
+    <section class="lg:col-span-7 space-y-4">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-emerald-400"></i> Recommended Slots
+        </h2>
+        <span class="text-xs text-slate-400" id="slotStatus">Select details and calculate</span>
+      </div>
+
+      <!-- Suggested Slot Cards -->
+      <div id="slotsContainer" class="space-y-3">
+        <!-- Placeholder / Empty state -->
+        <div class="border border-dashed border-slate-800 rounded-xl p-8 text-center text-slate-500">
+          <i class="fa-regular fa-calendar-xmark text-3xl mb-2 opacity-50"></i>
+          <p class="text-sm">Click "Find Optimal Slots" to run conflict-resolution logic.</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    async function findSlots() {
+      const container = document.getElementById('slotsContainer');
+      const status = document.getElementById('slotStatus');
+      
+      status.innerText = "Analyzing availability...";
+      container.innerHTML = `<div class="p-6 text-center text-slate-400 animate-pulse">Calculating optimal calendar overlaps...</div>`;
+
+      // Mock delay simulating Python API Call
+      setTimeout(() => {
+        status.innerText = "Found 3 optimal slots";
+        container.innerHTML = `
+          <!-- Option 1: Top Recommendation -->
+          <div class="bg-slate-950 border border-emerald-500/30 rounded-xl p-4 flex justify-between items-center hover:border-emerald-500 transition shadow-lg">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="bg-emerald-500/10 text-emerald-400 text-xs font-semibold px-2 py-0.5 rounded border border-emerald-500/20">Best Match (100%)</span>
+                <span class="text-xs text-slate-400">Zero conflicts</span>
+              </div>
+              <p class="text-base font-medium text-white">Today, 02:00 PM – 02:30 PM</p>
+              <p class="text-xs text-slate-400"><i class="fa-regular fa-user me-1"></i> 100% attendance guaranteed</p>
+            </div>
+            <button onclick="confirmSlot('02:00 PM')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2 rounded-lg transition">
+              Book Slot
+            </button>
+          </div>
+
+          <!-- Option 2 -->
+          <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 flex justify-between items-center hover:border-indigo-500 transition">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="bg-indigo-500/10 text-indigo-400 text-xs font-semibold px-2 py-0.5 rounded border border-indigo-500/20">Good Match (90%)</span>
+              </div>
+              <p class="text-base font-medium text-white">Today, 04:00 PM – 04:30 PM</p>
+              <p class="text-xs text-slate-400"><i class="fa-regular fa-user me-1"></i> Fits inside core working hours</p>
+            </div>
+            <button onclick="confirmSlot('04:00 PM')" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-4 py-2 rounded-lg transition">
+              Book Slot
+            </button>
+          </div>
+        `;
+      }, 600);
+    }
+
+    function confirmSlot(time) {
+      alert(`Meeting successfully scheduled for ${time}! Invites sent to participants.`);
+    }
+  </script>
+</body>
+</html>

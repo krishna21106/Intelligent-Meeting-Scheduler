@@ -1,0 +1,155 @@
+ <!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Team Directory | MeetWise AI Planner</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/liquid.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-page="participants">
+  <!-- Calm Liquid Ripple Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="calm" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <div class="brand-icon">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-badge">AI Planner</span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/schedule">Schedule Meeting</a>
+        <a class="nav-link active" href="/participants">Team Directory</a>
+      </nav>
+      <div id="user-nav-container" class="user-profile-nav">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="page-intro">
+      <p class="eyebrow">COLLABORATION NETWORK</p>
+      <h1>Team Directory & Availability</h1>
+      <p>Manage participant profiles, regional timezones, working hours, and calendar busy blocks.</p>
+    </section>
+
+    <div class="participants-grid">
+      <!-- Team Directory List -->
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">ACTIVE DIRECTORY</p>
+            <h2>Team Members</h2>
+          </div>
+          <div style="display:flex; gap:8px; align-items:center;">
+            <button class="button secondary" id="seed-demo-btn" type="button" title="Seed 6 realistic demo team members with calendar busy blocks">Seed Demo Team</button>
+            <span id="people-total" class="pill">—</span>
+          </div>
+        </div>
+        <div id="participants-list" class="people-list">Loading participants…</div>
+      </section>
+
+      <!-- Right Column: Add Participant & Add Busy Block -->
+      <div>
+        <!-- Add Participant Panel -->
+        <section class="panel add-panel">
+          <p class="eyebrow">NEW TEAM MEMBER</p>
+          <h2>Add Participant</h2>
+          <form id="participant-form" class="form-grid">
+            <label class="full">
+              Full Name
+              <input name="name" required maxlength="100" placeholder="e.g. Maya Garcia">
+            </label>
+            <label class="full">
+              Email Address
+              <input name="email" type="email" required placeholder="e.g. maya@example.com">
+            </label>
+            <label class="full">
+              Timezone
+              <input name="timezone" required value="Asia/Kolkata" list="timezone-options" placeholder="e.g. Asia/Kolkata">
+              <datalist id="timezone-options">
+                <option value="Asia/Kolkata">
+                <option value="Asia/Singapore">
+                <option value="Asia/Tokyo">
+                <option value="Europe/London">
+                <option value="Europe/Berlin">
+                <option value="America/New_York">
+                <option value="America/Chicago">
+                <option value="America/Los_Angeles">
+                <option value="UTC">
+              </datalist>
+            </label>
+            <label>
+              Work Starts
+              <input name="work_start" type="time" required value="09:00">
+            </label>
+            <label>
+              Work Ends
+              <input name="work_end" type="time" required value="17:00">
+            </label>
+            <div class="full" style="margin-top: 6px;">
+              <button class="button primary" type="submit" style="width: 100%;">Add to Directory</button>
+            </div>
+          </form>
+        </section>
+
+        <!-- Quick Add Busy Slot Panel -->
+        <section class="panel">
+          <p class="eyebrow">CALENDAR BLOCKER</p>
+          <h2>Add Busy Block</h2>
+          <p class="muted" style="margin-bottom: 12px; font-size: 12.5px;">Simulate a calendar conflict (e.g. client demo, doctor appointment) for testing conflict resolution.</p>
+          <form id="busy-slot-form" class="form-grid">
+            <label class="full">
+              Participant
+              <select id="busy-participant-select" required>
+                <option value="">Select participant…</option>
+              </select>
+            </label>
+            <label class="full">
+              Title / Activity
+              <input id="busy-title" required placeholder="e.g. Quarterly Client Review">
+            </label>
+            <label class="full">
+              Start Date & Time
+              <input id="busy-start-time" type="datetime-local" required>
+            </label>
+            <label class="full">
+              End Date & Time
+              <input id="busy-end-time" type="datetime-local" required>
+            </label>
+            <div class="full" style="margin-top: 6px;">
+              <button class="button secondary" type="submit" style="width: 100%;">Block Calendar Slot</button>
+            </div>
+          </form>
+        </section>
+
+        <div id="page-message" class="message" role="status"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Accessible Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmation</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="modal-message" class="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
+        <button type="button" class="button primary" data-modal-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>MeetWise · Multi-Timezone Calendar Engine supporting IANA Timezones & ISO 8601 Datetimes</footer>
+</body>
+</html>

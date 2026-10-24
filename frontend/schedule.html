@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schedule a Meeting | MeetWise AI Planner</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/liquid.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-page="schedule">
+  <!-- Calm Liquid Ripple Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="calm" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <div class="brand-icon">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-badge">AI Planner</span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/schedule">Schedule Meeting</a>
+        <a class="nav-link" href="/participants">Team Directory</a>
+      </nav>
+      <div id="user-nav-container" class="user-profile-nav">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </div>
+  </header>
+
+  <main class="container narrow">
+    <section class="page-intro">
+      <p class="eyebrow">INTELLIGENT SCHEDULER</p>
+      <h1>Plan a Conflict-Free Meeting</h1>
+      <p>Enter your meeting requirements manually or describe them in natural language. Our interval intersection engine will find the optimal slot for everyone.</p>
+    </section>
+
+    <!-- AI Natural Language Prompt Box -->
+    <section class="ai-box">
+      <div class="ai-box-header">
+        <span class="sparkle">✨</span>
+        <span>AI Natural Language Request Assistant</span>
+      </div>
+      <div class="inline-input">
+        <input id="natural-language" placeholder="e.g. Schedule a 45 minute meeting with Ravi and Priya tomorrow afternoon">
+        <button class="button primary" id="parse-button" type="button">Parse & Fill</button>
+      </div>
+      <div class="prompt-chips">
+        <span class="chip-label">Quick examples:</span>
+        <button type="button" class="prompt-chip" data-prompt="Schedule a 45 minute meeting with Ravi and Priya tomorrow afternoon">45m with Ravi & Priya tomorrow afternoon</button>
+        <button type="button" class="prompt-chip" data-prompt="30 minute sync with Liam tomorrow morning">30m sync with Liam tomorrow morning</button>
+        <button type="button" class="prompt-chip" data-prompt="1 hour sprint planning tomorrow afternoon">1 hour sprint planning tomorrow</button>
+      </div>
+    </section>
+
+    <!-- Structured Meeting Form -->
+    <section class="panel">
+      <form id="meeting-form" class="form-grid">
+        <label class="full">
+          Meeting Title / Agenda
+          <input id="meeting-title" required maxlength="200" placeholder="e.g. Architecture Sync & Sprint Review">
+        </label>
+
+        <label>
+          Target Date
+          <input id="meeting-date" type="date" required>
+        </label>
+
+        <label>
+          Duration
+          <select id="meeting-duration">
+            <option value="15">15 minutes (Quick Catchup)</option>
+            <option value="30" selected>30 minutes (Standard Sync)</option>
+            <option value="45">45 minutes (Detailed Discussion)</option>
+            <option value="60">1 hour (Review / Planning)</option>
+            <option value="90">1.5 hours (Deep Dive)</option>
+            <option value="120">2 hours (Workshop / Seminar)</option>
+          </select>
+        </label>
+
+        <label>
+          Organizer Timezone
+          <input id="meeting-timezone" value="Asia/Kolkata" required list="timezone-suggestions">
+          <datalist id="timezone-suggestions">
+            <option value="Asia/Kolkata">
+            <option value="Asia/Singapore">
+            <option value="Europe/London">
+            <option value="America/New_York">
+            <option value="America/Los_Angeles">
+            <option value="UTC">
+          </datalist>
+        </label>
+
+        <label>
+          Preferred Time Window
+          <select id="preferred-window">
+            <option value="">Any time during working hours</option>
+            <option value="morning">Morning (09:00 – 12:00)</option>
+            <option value="afternoon">Afternoon (13:00 – 17:00)</option>
+            <option value="evening">Evening (17:00 – 20:00)</option>
+          </select>
+        </label>
+
+        <fieldset class="full">
+          <legend>Required Participants <span class="muted">(All must be free for slot to be valid)</span></legend>
+          <div id="participant-options" class="check-list">Loading participants…</div>
+        </fieldset>
+
+        <fieldset class="full">
+          <legend>Optional Participants <span class="muted">(Slots are ranked higher when more optional attendees are free)</span></legend>
+          <div id="optional-participant-options" class="check-list">Loading participants…</div>
+        </fieldset>
+
+        <div class="full" style="margin-top: 8px;">
+          <button class="button primary" type="submit" style="width: 100%; padding: 14px; font-size: 15px;">
+            <span>Find Best Available Times</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Suggested Slots Section -->
+    <section id="suggestion-section" class="panel hidden">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">RANKED TIME SLOTS</p>
+          <h2>Recommended Meeting Times</h2>
+        </div>
+      </div>
+      <div id="suggestions"></div>
+    </section>
+
+    <div id="page-message" class="message" role="status"></div>
+  </main>
+
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Accessible Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmation</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="modal-message" class="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
+        <button type="button" class="button primary" data-modal-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>MeetWise · Uses Two-Pointer Interval Intersection & Multi-Factor Scoring Engine</footer>
+</body>
+</html>
+

@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sign In — MeetWise AI Planner</title>
+  <link rel="stylesheet" href="/static/css/landing.css">
+  <script src="/static/js/liquid.js" defer></script>
+</head>
+<body>
+  <!-- Full-screen WebGL Liquid Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="full" aria-hidden="true"></canvas>
+
+  <div class="landing-wrapper">
+    <!-- Top Navigation Bar -->
+    <header class="landing-nav">
+      <a class="brand-link" href="/">
+        <div class="brand-badge">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-tag">AI Planner</span>
+      </a>
+
+      <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle theme">
+          <span id="theme-icon">☀️</span>
+          <span id="theme-text">Light</span>
+        </button>
+        <a class="btn btn-ghost btn-sm" href="/">← Home</a>
+        <a class="btn btn-primary btn-sm" href="/signup">Sign Up</a>
+      </div>
+    </header>
+
+    <!-- Centered Glassmorphic Auth Form -->
+    <main class="auth-page-container">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2>Welcome Back</h2>
+          <p>Sign in to your MeetWise workspace</p>
+        </div>
+
+        <!-- Alert Notification Box -->
+        <div id="auth-alert" class="auth-alert" role="alert"></div>
+
+        <form id="login-form" class="auth-form" novalidate>
+          <div class="form-group">
+            <label for="email">Email Address</label>
+            <input
+              id="email"
+              type="email"
+              class="auth-input"
+              placeholder="name@company.com"
+              required
+              autocomplete="email"
+            >
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password</label>
+            <div class="input-wrapper">
+              <input
+                id="password"
+                type="password"
+                class="auth-input"
+                placeholder="Enter your password"
+                required
+                autocomplete="current-password"
+              >
+              <button
+                type="button"
+                id="toggle-password"
+                class="password-toggle-btn"
+                aria-label="Toggle password visibility"
+              >
+                👁️
+              </button>
+            </div>
+          </div>
+
+          <button id="submit-btn" type="submit" class="btn btn-primary btn-full">
+            <span id="btn-text">Sign In</span>
+            <span id="btn-spinner" class="spinner" style="display: none;"></span>
+          </button>
+        </form>
+
+        <div class="demo-creds-box">
+          <strong>Demo Accounts (Click to Fill):</strong>
+          <div style="margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-secondary btn-sm" id="fill-admin-btn">
+              Admin: admin@meetwise.local
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="fill-member-btn">
+              Member: member@meetwise.local
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-footer">
+          Don't have an account yet? <a href="/signup">Create one now</a>
+        </div>
+      </div>
+    </main>
+
+    <footer class="landing-footer">
+      MeetWise · AI-Powered Intelligent Meeting Planner
+    </footer>
+  </div>
+
+  <script>
+    // Theme setup
+    (function () {
+      const themeBtn = document.getElementById("theme-toggle");
+      const themeIcon = document.getElementById("theme-icon");
+      const themeText = document.getElementById("theme-text");
+
+      function applyTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("meetwise_theme", theme);
+        if (theme === "light") {
+          themeIcon.textContent = "🌙";
+          themeText.textContent = "Dark";
+        } else {
+          themeIcon.textContent = "☀️";
+          themeText.textContent = "Light";
+        }
+      }
+
+      const savedTheme = localStorage.getItem("meetwise_theme") ||
+        (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+      applyTheme(savedTheme);
+
+      if (themeBtn) {
+        themeBtn.addEventListener("click", () => {
+          const current = document.documentElement.getAttribute("data-theme") || "dark";
+          applyTheme(current === "dark" ? "light" : "dark");
+        });
+      }
+
+      // Check if already authenticated -> go to dashboard
+      fetch("/auth/me")
+        .then((res) => {
+          if (res.ok) {
+            window.location.replace("/dashboard");
+          }
+        })
+        .catch(() => {});
+    })();
+
+    // Password Visibility Toggle
+    const passInput = document.getElementById("password");
+    const togglePassBtn = document.getElementById("toggle-password");
+    togglePassBtn.addEventListener("click", () => {
+      const isPass = passInput.type === "password";
+      passInput.type = isPass ? "text" : "password";
+      togglePassBtn.textContent = isPass ? "🙈" : "👁️";
+    });
+
+    // Demo Fill Shortcuts
+    document.getElementById("fill-admin-btn").addEventListener("click", () => {
+      document.getElementById("email").value = "admin@meetwise.local";
+      document.getElementById("password").value = "AdminPass123!";
+    });
+
+    document.getElementById("fill-member-btn").addEventListener("click", () => {
+      document.getElementById("email").value = "member@meetwise.local";
+      document.getElementById("password").value = "MemberPass123!";
+    });
+
+    // Login Form Submission
+    const form = document.getElementById("login-form");
+    const alertBox = document.getElementById("auth-alert");
+    const submitBtn = document.getElementById("submit-btn");
+    const btnText = document.getElementById("btn-text");
+    const btnSpinner = document.getElementById("btn-spinner");
+
+    function showAlert(msg, isError = true) {
+      alertBox.textContent = msg;
+      alertBox.className = `auth-alert ${isError ? "error" : "success"}`;
+      alertBox.style.display = "flex";
+    }
+
+    function hideAlert() {
+      alertBox.style.display = "none";
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      hideAlert();
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!email || !password) {
+        showAlert("Please enter both email and password.");
+        return;
+      }
+
+      submitBtn.disabled = true;
+      btnText.style.display = "none";
+      btnSpinner.style.display = "inline-block";
+
+      try {
+        const response = await fetch("/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          const detail = data && data.detail ? data.detail : "Invalid email or password.";
+          const msg = Array.isArray(detail) ? detail.map((d) => d.msg).join(", ") : String(detail);
+          showAlert(msg, true);
+          submitBtn.disabled = false;
+          btnText.style.display = "inline";
+          btnSpinner.style.display = "none";
+          return;
+        }
+
+        showAlert(`Welcome back, ${data.name}! Redirecting…`, false);
+        setTimeout(() => {
+          window.location.replace("/dashboard");
+        }, 600);
+      } catch (err) {
+        showAlert("Network error connecting to MeetWise server. Please try again.", true);
+        submitBtn.disabled = false;
+        btnText.style.display = "inline";
+        btnSpinner.style.display = "none";
+      }
+    });
+  </script>
+</body>
+</html>
+

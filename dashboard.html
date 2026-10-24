@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meeting Dashboard - SmartSchedule</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+
+  <div class="max-w-6xl mx-auto p-6 space-y-6">
+    <!-- Header Summary -->
+    <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+      <div>
+        <h1 class="text-2xl font-bold">Scheduled Meetings</h1>
+        <p class="text-sm text-slate-400">Manage intelligent bookings & participant responses</p>
+      </div>
+      <a href="index.html" class="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-sm font-medium transition flex items-center gap-2">
+        <i class="fa-solid fa-plus"></i> New Meeting
+      </a>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Upcoming Today</span>
+        <p class="text-2xl font-bold text-indigo-400 mt-1">4 Meetings</p>
+      </div>
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Time Saved by AI</span>
+        <p class="text-2xl font-bold text-emerald-400 mt-1">~3.5 Hours</p>
+      </div>
+      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800">
+        <span class="text-xs text-slate-400 font-medium">Schedule Conflicts Solved</span>
+        <p class="text-2xl font-bold text-amber-400 mt-1">12 Restructures</p>
+      </div>
+    </div>
+
+    <!-- Meetings Table -->
+    <div class="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-xl">
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="border-b border-slate-800 bg-slate-900/50 text-xs text-slate-400 uppercase">
+            <th class="p-4">Meeting</th>
+            <th class="p-4">Time Window</th>
+            <th class="p-4">Participants</th>
+            <th class="p-4">Status</th>
+            <th class="p-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-800 text-sm">
+          <tr class="hover:bg-slate-900/30 transition">
+            <td class="p-4 font-medium text-white">Sprint Planning</td>
+            <td class="p-4 text-slate-300">10:00 AM – 10:45 AM</td>
+            <td class="p-4 text-slate-400">Alice, Bob, Carol</td>
+            <td class="p-4"><span class="bg-emerald-500/10 text-emerald-400 text-xs px-2.5 py-1 rounded-full border border-emerald-500/20">Confirmed</span></td>
+            <td class="p-4 text-right">
+              <button class="text-slate-400 hover:text-red-400 text-xs">Cancel</button>
+            </td>
+          </tr>
+          <tr class="hover:bg-slate-900/30 transition">
+            <td class="p-4 font-medium text-white">Backend Architecture Sync</td>
+            <td class="p-4 text-slate-300">02:30 PM – 03:00 PM</td>
+            <td class="p-4 text-slate-400">Dave, Eve</td>
+            <td class="p-4"><span class="bg-amber-500/10 text-amber-400 text-xs px-2.5 py-1 rounded-full border border-amber-500/20">Pending Confirmations</span></td>
+            <td class="p-4 text-right">
+              <button class="text-slate-400 hover:text-indigo-400 text-xs">Reschedule</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</body>
+</html>

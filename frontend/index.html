@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeetWise — AI-Powered Intelligent Meeting Planner</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/js/liquid.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-page="dashboard">
+  <!-- Calm Liquid Ripple Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="calm" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <div class="brand-icon">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-badge">AI Planner</span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/schedule">Schedule Meeting</a>
+        <a class="nav-link" href="/participants">Team Directory</a>
+      </nav>
+      <div id="user-nav-container" class="user-profile-nav">
+        <!-- Rendered dynamically by app.js: user pill + role badge + logout button -->
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">✨ AI INTERVAL INTERSECTION SCHEDULER</p>
+        <h1 id="welcome-heading">Smart scheduling across busy calendars & timezones.</h1>
+        <p>Eliminate endless back-and-forth emails. MeetWise scans everyone's working hours, subtracts busy intervals, and finds the ideal time slot in seconds.</p>
+      </div>
+      <a class="button primary" href="/schedule">
+        <span>Schedule Meeting</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </section>
+
+    <section class="stats">
+      <article class="stat-card">
+        <span class="stat-icon">🕒</span>
+        <div class="stat-info">
+          <span class="muted">Upcoming Meetings</span>
+          <strong id="meeting-count">—</strong>
+        </div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon">👥</span>
+        <div class="stat-info">
+          <span class="muted">Team Participants</span>
+          <strong id="participant-count">—</strong>
+        </div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon">🔔</span>
+        <div class="stat-info">
+          <span class="muted">Reminders Delivered</span>
+          <strong id="reminder-count">—</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="dashboard-grid">
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CALENDAR OVERVIEW</p>
+            <h2>Scheduled Meetings</h2>
+          </div>
+          <a class="button secondary" href="/schedule">+ New Meeting</a>
+        </div>
+        <div id="meeting-list" class="meeting-list">
+          <p class="muted">Loading scheduled meetings…</p>
+        </div>
+      </section>
+
+      <aside class="panel notification-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">REMINDER DISPATCH</p>
+            <h2>Live Notifications</h2>
+          </div>
+          <button class="button secondary" id="check-reminders-btn" type="button" title="Check & trigger due notifications">Check Due</button>
+        </div>
+        <div id="notification-list">
+          <p class="muted">Loading notifications…</p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Admin Analytics Dashboard Panel (Rendered only for role=admin) -->
+    <section id="admin-panel" class="admin-panel" style="display: none;">
+      <!-- Header & Action Toolbar -->
+      <div class="admin-header-row">
+        <div>
+          <p class="eyebrow">SYSTEM ADMINISTRATION & INTELLIGENCE</p>
+          <h2>Analytics & Operations Dashboard</h2>
+        </div>
+
+        <div class="admin-toolbar">
+          <div class="date-range-group" role="group" aria-label="Select Analytics Time Range">
+            <button type="button" class="date-btn" data-days="7">7 Days</button>
+            <button type="button" class="date-btn active" data-days="30">30 Days</button>
+            <button type="button" class="date-btn" data-days="90">90 Days</button>
+          </div>
+          <button id="admin-refresh-btn" type="button" class="btn-toolbar" title="Refresh live analytics">
+            <span class="refresh-icon">🔄</span> Refresh
+          </button>
+          <button id="admin-export-analytics-btn" type="button" class="btn-toolbar" title="Export Analytics metrics as CSV">
+            📥 Export Analytics CSV
+          </button>
+          <span id="admin-last-updated" class="last-updated-text">Updated: just now</span>
+        </div>
+      </div>
+
+      <!-- Tab Buttons -->
+      <nav class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab-btn active" data-tab="overview" role="tab" aria-selected="true">
+          📊 Overview
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="meetings" role="tab" aria-selected="false">
+          📅 Meetings
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="people" role="tab" aria-selected="false">
+          👥 People
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="notifications" role="tab" aria-selected="false">
+          🔔 Notifications
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="users" role="tab" aria-selected="false">
+          🔐 User Directory
+        </button>
+      </nav>
+
+      <!-- TAB 1: OVERVIEW -->
+      <div id="pane-overview" class="admin-tab-pane active" role="tabpanel">
+        <!-- 8 KPI Cards Grid -->
+        <div class="admin-kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">👥</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Total Users</span>
+              <span class="kpi-value" id="kpi-total-users">—</span>
+              <span class="kpi-sub">Registered accounts</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🧑‍💼</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Participants</span>
+              <span class="kpi-value" id="kpi-total-participants">—</span>
+              <span class="kpi-sub">Directory members</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">📅</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Total Meetings</span>
+              <span class="kpi-value" id="kpi-total-meetings">—</span>
+              <span class="kpi-sub">Scheduled & held</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏰</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Upcoming</span>
+              <span class="kpi-value" id="kpi-upcoming-meetings">—</span>
+              <span class="kpi-sub">Future scheduled</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🚫</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Busy Slots</span>
+              <span class="kpi-value" id="kpi-total-busy-slots">—</span>
+              <span class="kpi-sub">Calendar blocks</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Pending Reminders</span>
+              <span class="kpi-value" id="kpi-pending-notifications">—</span>
+              <span class="kpi-sub">Awaiting delivery</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🔔</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Sent Reminders</span>
+              <span class="kpi-value" id="kpi-sent-notifications">—</span>
+              <span class="kpi-sub">Delivered on-time</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏱️</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Avg Duration</span>
+              <span class="kpi-value" id="kpi-avg-duration">—</span>
+              <span class="kpi-sub">Minutes per meeting</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overview Charts Grid -->
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meetings Activity Trend</h3>
+                <p class="chart-subtitle">Daily scheduled meeting volume over selected range</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-overview-meetings"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">User Roles Distribution</h3>
+                <p class="chart-subtitle">Admin vs Member workspace allocation</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-users-role"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Status Breakdown</h3>
+                <p class="chart-subtitle">Scheduled vs Cancelled ratio</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-status"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Notification Delivery Ratio</h3>
+                <p class="chart-subtitle">Delivered vs Queued reminders</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-notifications-ratio"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MEETINGS -->
+      <div id="pane-meetings" class="admin-tab-pane" role="tabpanel">
+        <div class="admin-charts-grid full-width">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Volume Trend Over Time</h3>
+                <p class="chart-subtitle">Zero-filled timeline of scheduled meetings</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-timeline"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meetings by Day of Week</h3>
+                <p class="chart-subtitle">Weekly concentration pattern (Mon–Sun)</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-by-weekday"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meetings by Starting Hour</h3>
+                <p class="chart-subtitle">Peak scheduling times throughout the day (0–23h)</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-by-hour"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Duration Buckets</h3>
+                <p class="chart-subtitle">Distribution of meeting lengths in minutes</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-duration-buckets"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Status Ratios</h3>
+                <p class="chart-subtitle">Proportion of scheduled vs cancelled bookings</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-status-detail"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: PEOPLE -->
+      <div id="pane-people" class="admin-tab-pane" role="tabpanel">
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Participants by Timezone</h3>
+                <p class="chart-subtitle">Geographic dispersion across IANA timezones</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-participants-timezone"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Top Attendees (Meetings Joined)</h3>
+                <p class="chart-subtitle">Top 5 participants by scheduled meeting involvement</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-busiest-meetings"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Top Calendars (Busy Blocks)</h3>
+                <p class="chart-subtitle">Top 5 participants with most calendar commitments</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-busiest-slots"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Top Meeting Organizers</h3>
+                <p class="chart-subtitle">User accounts creating the most meetings</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-per-user"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: NOTIFICATIONS & GROWTH -->
+      <div id="pane-notifications" class="admin-tab-pane" role="tabpanel">
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Reminders Sent vs Pending</h3>
+                <p class="chart-subtitle">Automated notification dispatch status</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-notif-sent-pending"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Attendee Type (Required vs Optional)</h3>
+                <p class="chart-subtitle">Distribution of participant requirements</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-attendee-req-opt"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card full-width">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Account Signups Trend Over Time</h3>
+                <p class="chart-subtitle">New user registrations per day</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-signups-trend"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: USER DIRECTORY -->
+      <div id="pane-users" class="admin-tab-pane" role="tabpanel">
+        <div class="users-filter-toolbar">
+          <div class="users-search-box">
+            <span>🔍</span>
+            <input id="users-search-input" type="text" placeholder="Search by user name or email…" aria-label="Search users">
+          </div>
+
+          <div class="users-filter-selects">
+            <select id="users-role-filter" class="filter-select" aria-label="Filter by role">
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
+            </select>
+
+            <select id="users-sort-select" class="filter-select" aria-label="Sort users">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name_asc">Name (A–Z)</option>
+              <option value="email_asc">Email (A–Z)</option>
+            </select>
+
+            <button id="admin-export-users-btn" type="button" class="btn-toolbar" title="Export User Directory to CSV">
+              📥 Export Users CSV
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>User Name</th>
+                <th>Email Address</th>
+                <th>Current Role</th>
+                <th>Joined Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-list">
+              <tr><td colspan="5" class="muted">Loading user directory…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Accessible Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmation</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="modal-message" class="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
+        <button type="button" class="button primary" data-modal-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <footer>MeetWise · AI-Powered Intelligent Meeting Planner for Viva & Modern Teams</footer>
+</body>
+</html>
+
