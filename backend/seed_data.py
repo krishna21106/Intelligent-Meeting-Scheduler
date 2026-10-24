@@ -2,6 +2,7 @@
 Seed simulated team calendar data for demonstrations and testing.
 Creates 6 diverse participants across multiple timezones (India, Singapore, UK, US),
 with realistic working hours and busy slots across today and upcoming days.
+Guarantees user permanence: never deletes registered user accounts.
 """
 
 from datetime import date, datetime, time, timedelta, timezone
@@ -21,19 +22,29 @@ DEMO_PARTICIPANTS = [
 
 
 def seed_demo_data(force: bool = False) -> None:
-    """Insert demo participants, realistic calendar busy blocks, and default users."""
+    """
+    Safely seeds demo participants and default accounts.
+    Never wipes registered users from the database.
+    """
     with get_connection() as connection:
-        # Seed default admin and member users if table is empty
-        user_count = connection.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        if user_count == 0 or force:
-            now_iso = datetime.now(timezone.utc).isoformat()
-            if force:
-                connection.execute("DELETE FROM users;")
+        now_iso = datetime.now(timezone.utc).isoformat()
+
+        # Ensure default Admin exists without touching other registered accounts
+        admin_exists = connection.execute(
+            "SELECT id FROM users WHERE LOWER(email) = LOWER(?)", ("admin@meetwise.local",)
+        ).fetchone()
+        if not admin_exists:
             connection.execute(
                 """INSERT INTO users(name, email, password_hash, role, created_at)
                    VALUES (?, ?, ?, ?, ?)""",
                 ("Admin User", "admin@meetwise.local", hash_password("AdminPass123!"), "admin", now_iso),
             )
+
+        # Ensure default Member exists without touching other registered accounts
+        member_exists = connection.execute(
+            "SELECT id FROM users WHERE LOWER(email) = LOWER(?)", ("member@meetwise.local",)
+        ).fetchone()
+        if not member_exists:
             connection.execute(
                 """INSERT INTO users(name, email, password_hash, role, created_at)
                    VALUES (?, ?, ?, ?, ?)""",
@@ -50,7 +61,6 @@ def seed_demo_data(force: bool = False) -> None:
             connection.execute("DELETE FROM meetings;")
             connection.execute("DELETE FROM busy_slots;")
             connection.execute("DELETE FROM participants;")
-
 
         participant_ids = []
         for name, email, tz_name, w_start, w_end in DEMO_PARTICIPANTS:
@@ -92,4 +102,3 @@ def seed_demo_data(force: bool = False) -> None:
 if __name__ == "__main__":
     seed_demo_data(force=True)
     print("Demo data seeded successfully.")
-

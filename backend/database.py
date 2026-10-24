@@ -38,12 +38,13 @@ def get_connection(db_path: Path | str | None = None) -> Iterator[sqlite3.Connec
 
 def initialize_database(db_path: Path | str | None = None) -> None:
     """
-    Create the five required database tables and performance indexes:
-    1. participants
-    2. busy_slots
-    3. meetings
-    4. meeting_participants
-    5. notifications
+    Create the database tables and performance indexes:
+    1. users
+    2. participants
+    3. busy_slots
+    4. meetings (with Jitsi meeting_url)
+    5. meeting_participants
+    6. notifications
     """
     with get_connection(db_path) as connection:
         connection.executescript(
@@ -54,7 +55,8 @@ def initialize_database(db_path: Path | str | None = None) -> None:
                 email TEXT NOT NULL UNIQUE COLLATE NOCASE,
                 password_hash TEXT NOT NULL,
                 role TEXT NOT NULL DEFAULT 'member',
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                avatar_url TEXT
             );
 
             CREATE TABLE IF NOT EXISTS participants (
@@ -83,7 +85,8 @@ def initialize_database(db_path: Path | str | None = None) -> None:
                 end_time TEXT NOT NULL,
                 status TEXT NOT NULL DEFAULT 'scheduled',
                 created_at TEXT NOT NULL,
-                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL
+                user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+                meeting_url TEXT
             );
 
             CREATE TABLE IF NOT EXISTS meeting_participants (
@@ -131,7 +134,12 @@ def initialize_database(db_path: Path | str | None = None) -> None:
         meet_cols = [row["name"] for row in connection.execute("PRAGMA table_info(meetings);").fetchall()]
         if "user_id" not in meet_cols:
             connection.execute("ALTER TABLE meetings ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE SET NULL;")
+        if "meeting_url" not in meet_cols:
+            connection.execute("ALTER TABLE meetings ADD COLUMN meeting_url TEXT;")
 
+        user_cols = [row["name"] for row in connection.execute("PRAGMA table_info(users);").fetchall()]
+        if "avatar_url" not in user_cols:
+            connection.execute("ALTER TABLE users ADD COLUMN avatar_url TEXT;")
 
 
 # Alias for compatibility with test suites and external modules
@@ -141,4 +149,3 @@ init_db = initialize_database
 def rows_as_dicts(rows: List[sqlite3.Row]) -> List[Dict[str, Any]]:
     """Convert SQLite Row objects into JSON-friendly Python dictionaries."""
     return [dict(row) for row in rows]
-

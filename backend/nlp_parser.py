@@ -193,4 +193,3 @@ def _extract_date(text: str, today: date) -> date:
         return candidate
 
     return today + timedelta(days=1)
-

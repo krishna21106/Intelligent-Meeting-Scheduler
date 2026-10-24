@@ -115,6 +115,7 @@
       function applyTheme(theme) {
         document.documentElement.setAttribute("data-theme", theme);
         localStorage.setItem("meetwise_theme", theme);
+        localStorage.setItem("meetwise-theme", theme);
         if (theme === "light") {
           themeIcon.textContent = "🌙";
           themeText.textContent = "Dark";
@@ -124,7 +125,7 @@
         }
       }
 
-      const savedTheme = localStorage.getItem("meetwise_theme") ||
+      const savedTheme = localStorage.getItem("meetwise-theme") || localStorage.getItem("meetwise_theme") ||
         (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
       applyTheme(savedTheme);
 
@@ -135,11 +136,25 @@
         });
       }
 
-      // Check if already authenticated -> go to dashboard
+      // If user is already authenticated, show friendly banner instead of trapping them
       fetch("/auth/me")
-        .then((res) => {
-          if (res.ok) {
-            window.location.replace("/dashboard");
+        .then((res) => res.ok ? res.json() : null)
+        .then((user) => {
+          if (user && user.id) {
+            const alertBox = document.getElementById("auth-alert");
+            if (alertBox) {
+              alertBox.innerHTML = `
+                <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+                  <span>You are currently signed in as <strong>${user.name}</strong> (${user.email})</span>
+                  <div style="display:flex; gap:10px; margin-top:4px;">
+                    <a href="/dashboard" class="btn btn-primary btn-sm" style="padding:4px 12px; text-decoration:none;">Go to Dashboard →</a>
+                    <a href="/" class="btn btn-ghost btn-sm" style="padding:4px 12px; text-decoration:none;">View Landing Page</a>
+                  </div>
+                </div>
+              `;
+              alertBox.className = "auth-alert success";
+              alertBox.style.display = "flex";
+            }
           }
         })
         .catch(() => {});
@@ -234,4 +249,3 @@
   </script>
 </body>
 </html>
-

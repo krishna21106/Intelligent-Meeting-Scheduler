@@ -218,6 +218,47 @@ All 25 tests run in isolated temporary SQLite databases and complete in ~10 seco
 
 ## CHANGELOG
 
+### Version 3.3.0
+- **Interactive User Profile & Avatar Customization System:**
+  - Clicking the profile avatar or navigation chip in the topbar opens the dedicated **Account Profile & Settings Modal**.
+  - Clicking directly on the avatar image launches the photo uploader or avatar preset chooser (*"edit details and profile icons by clicking image"*).
+  - Curated gallery of 8 modern SVG presets (Cyber Fox, Astronaut, Electric Amber, Holo Violet, Wisdom Teal, Diamond, Emerald Pro, Cyber Bot) requiring zero external CDN requests.
+  - Instant client-side file upload with automatic 128x128 canvas compression to lightweight Data URLs stored directly in SQLite.
+  - External custom image URL support with live preview.
+  - Edit Full Name, Email Address, and optional Password Change with current password verification.
+  - Added `avatar_url TEXT` column to `users` SQLite table with automatic database migration.
+  - Added `PUT /auth/me` endpoint in FastAPI backend with collision checks and validation.
+- **Unified Site-Wide Light/Dark Toggle Mode:**
+  - High-visibility theme toggle (☀️ Light / 🌙 Dark) enabled and synchronized across all pages: Landing (`/`), Login (`/login`), Signup (`/signup`), Dashboard (`/dashboard`), Schedule (`/schedule`), and Directory (`/participants`).
+  - Seamless persistence across tabs and reloads via synchronized localStorage keys (`meetwise-theme` and `meetwise_theme`).
+  - Immediate dynamic re-skinning of glassmorphic surfaces, cards, modals, and WebGL liquid background tokens.
+- **Enhanced UI/UX Polish & Micro-Interactions:**
+  - Interactive user pill with avatar ring, hover elevation, camera edit badge, and clean user metadata layout.
+  - Smooth cubic-bezier transitions on cards, buttons, dialogs, and notifications.
+
+### Version 3.2.0
+- **Theme Toggle After Login:** Added a persistent dark/light mode toggle (☀️/🌙) in the navigation bar on the Dashboard, Schedule Meeting, and Manage Participants pages. State is automatically preserved via `localStorage["meetwise-theme"]`.
+- **Supreme Admin Powers & Pro-Level Animations:**
+  - Glowing iridescent **"👑 SUPREME ADMIN"** badge with dynamic aurora borders and holographic color shifts.
+  - Holographic Command Center HUD banner with live telemetry metrics (active users, system load, uptime, protocol status).
+  - Pro-level CSS keyframe animations: `supremeAura`, `supremeGradient`, `pulseGreenDot`, and `floatIcon`.
+  - Direct user creation modal: `POST /auth/users` allows admins to create both member and admin accounts.
+  - Direct user deletion: `DELETE /auth/users/{user_id}` allows admins to permanently remove accounts (with self-deletion protection for the active admin).
+- **Guaranteed User Permanence:**
+  - SQLite database persistence ensures that once a user registers or is created, they remain permanently in the database.
+  - Eliminated destructive `DELETE FROM users;` in demo data seeding routines so registered credentials always remain workable across server restarts and reseeds.
+- **Jitsi Meet Video Conference Integration ("jitc"):**
+  - Unique, zero-configuration Jitsi meeting rooms (`https://meet.jit.si/MeetWise-...`) are automatically generated upon booking.
+  - Persisted in the `meetings.meeting_url` column with automatic SQLite schema migration.
+  - Interactive embedded Jitsi video modal with mic/camera permissions and direct browser tab launch button.
+  - Direct **"🎥 Join Call"** button displayed on every scheduled meeting card.
+- **Automated Attendee & Organizer Email Confirmations:**
+  - Dispatches formatted HTML and plain-text confirmation emails whenever a meeting is booked.
+  - Delivered to all meeting attendees and to the registered email address of the meeting organizer.
+  - Contains meeting timings in local timezones, attendee lists, and direct Jitsi video links.
+  - Logs notification records to the `notifications` table (`sent = 1`).
+  - Supports real SMTP when configured (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`), with clean simulated console logging fallback.
+
 ### Version 3.1.0
 - **Admin Analytics Dashboard with Chart.js 4.4.1:** Transformed the admin panel into a comprehensive operations and analytics dashboard structured into 5 tabs (*Overview*, *Meetings*, *People*, *Notifications*, *User Directory*).
 - **KPI Stat Grid with Animated Counters:** Added 8 glassmorphic KPI cards tracking total users, active directory participants, total and upcoming meetings, calendar busy blocks, reminder dispatch health, and average meeting duration with smooth ease-out count-up animations.
@@ -237,3 +278,4 @@ All 25 tests run in isolated temporary SQLite databases and complete in ~10 seco
 - **Protected Dashboard & RBAC:** Added login verification on all dashboard pages, user info in topbar, logout action, and dynamic Admin User Management panel (`GET /auth/users`, `PUT /auth/users/{id}/role`).
 - **Smart Navigation Redirects:** Automatically redirects authenticated users away from `/login`, `/signup`, and `/` to `/dashboard`, and redirects unauthenticated users accessing `/dashboard`, `/schedule`, or `/participants` to `/login`.
 - **Test Suite Expansion:** Added `tests/test_auth.py` with 10 comprehensive tests; all 25 tests in test suite passing 100%.
+

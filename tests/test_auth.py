@@ -11,11 +11,14 @@ from backend.main import app
 @pytest.fixture
 def auth_client(tmp_path, monkeypatch):
     """Provides an isolated TestClient with a fresh temporary database."""
-    monkeypatch.setattr(database, "DATABASE_PATH", tmp_path / "test-auth.db")
+    from backend.seed_data import seed_demo_data
+    db_file = tmp_path / "test-auth.db"
+    monkeypatch.setattr(database, "DATABASE_PATH", db_file)
+    database.initialize_database(db_file)
+    seed_demo_data(force=True)
     # Reset any rate limits from other tests
     reset_login_rate_limit("testclient", "ratelimit_test@meetwise.local")
-    with TestClient(app) as test_client:
-        yield test_client
+    yield TestClient(app)
 
 
 def test_signup_success_and_session_cookie(auth_client: TestClient) -> None:
@@ -267,18 +270,72 @@ def test_navigation_redirects(auth_client: TestClient) -> None:
         json={"email": "member@meetwise.local", "password": "MemberPass123!"},
     )
 
-    # Authenticated user accessing / -> 302 to /dashboard
+    # Public landing page is always accessible directly (status 200)
     auth_landing = auth_client.get("/", follow_redirects=False)
-    assert auth_landing.status_code == 302
-    assert auth_landing.headers["location"] == "/dashboard"
+    assert auth_landing.status_code == 200
 
-    # Authenticated user accessing /login -> 302 to /dashboard
-    auth_login_page = auth_client.get("/login", follow_redirects=False)
-    assert auth_login_page.status_code == 302
-    assert auth_login_page.headers["location"] == "/dashboard"
+    auth_landing_alias = auth_client.get("/landing", follow_redirects=False)
+    assert auth_landing_alias.status_code == 200
 
-    # Authenticated user accessing /signup -> 302 to /dashboard
-    auth_signup_page = auth_client.get("/signup", follow_redirects=False)
-    assert auth_signup_page.status_code == 302
-    assert auth_signup_page.headers["location"] == "/dashboard"
+    # Login and signup pages remain accessible for switching accounts
+    assert auth_client.get("/login", follow_redirects=False).status_code == 200
+    assert auth_client.get("/signup", follow_redirects=False).status_code == 200
 
+
+
+def test_supreme_admin_create_and_delete_user(auth_client: TestClient) -> None:
+    # 1. Member cannot create user -> 403
+    auth_client.cookies.clear()
+    auth_client.post("/auth/login", json={"email": "member@meetwise.local", "password": "MemberPass123!"})
+    unauth_create = auth_client.post("/auth/users", json={
+        "name": "New Hire",
+        "email": "newhire@meetwise.local",
+        "password": "Password123!",
+        "role": "member",
+    })
+    assert unauth_create.status_code == 403
+
+    # 2. Admin creates user successfully
+    auth_client.cookies.clear()
+    auth_client.post("/auth/login", json={"email": "admin@meetwise.local", "password": "AdminPass123!"})
+    create_res = auth_client.post("/auth/users", json={
+        "name": "New Hire",
+        "email": "newhire@meetwise.local",
+        "password": "NewHirePassword123!",
+        "role": "member",
+    })
+    assert create_res.status_code == 201
+    user_id = create_res.json()["id"]
+
+    # 3. Newly created user can log in with their credentials!
+    auth_client.cookies.clear()
+    login_new_user = auth_client.post("/auth/login", json={
+        "email": "newhire@meetwise.local",
+        "password": "NewHirePassword123!",
+    })
+    assert login_new_user.status_code == 200
+    assert login_new_user.json()["name"] == "New Hire"
+
+    # 4. Member cannot delete user -> 403
+    del_member_attempt = auth_client.delete(f"/auth/users/{user_id}")
+    assert del_member_attempt.status_code == 403
+
+    # 5. Admin cannot delete self -> 400
+    auth_client.cookies.clear()
+    admin_login = auth_client.post("/auth/login", json={"email": "admin@meetwise.local", "password": "AdminPass123!"})
+    admin_id = admin_login.json()["id"]
+    self_del = auth_client.delete(f"/auth/users/{admin_id}")
+    assert self_del.status_code == 400
+    assert "cannot delete your own" in self_del.json()["detail"].lower()
+
+    # 6. Admin deletes the new user permanently
+    del_res = auth_client.delete(f"/auth/users/{user_id}")
+    assert del_res.status_code == 200
+
+    # 7. Deleted user can no longer log in -> 401
+    auth_client.cookies.clear()
+    login_after_del = auth_client.post("/auth/login", json={
+        "email": "newhire@meetwise.local",
+        "password": "NewHirePassword123!",
+    })
+    assert login_after_del.status_code == 401

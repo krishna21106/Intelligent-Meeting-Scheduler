@@ -1,3 +1,53 @@
+
+// ==========================================================================
+// Dark / Light Theme Mode Controller
+// ==========================================================================
+
+function initThemeToggle() {
+  const storedTheme = localStorage.getItem("meetwise-theme") || localStorage.getItem("meetwise_theme") || "dark";
+  document.documentElement.setAttribute("data-theme", storedTheme);
+  localStorage.setItem("meetwise-theme", storedTheme);
+  localStorage.setItem("meetwise_theme", storedTheme);
+
+  document.querySelectorAll(".theme-icon, #theme-icon").forEach((icon) => {
+    icon.textContent = storedTheme === "light" ? "☀️" : "🌙";
+  });
+  const themeText = document.getElementById("theme-text");
+  if (themeText) {
+    themeText.textContent = storedTheme === "light" ? "Dark" : "Light";
+  }
+
+  document.querySelectorAll(".btn-theme-toggle, .theme-toggle-btn, #theme-toggle").forEach((btn) => {
+    btn.onclick = (e) => {
+      if (e) e.preventDefault();
+      const current = document.documentElement.getAttribute("data-theme") || "dark";
+      const next = current === "light" ? "dark" : "light";
+      document.documentElement.setAttribute("data-theme", next);
+      localStorage.setItem("meetwise-theme", next);
+      localStorage.setItem("meetwise_theme", next);
+
+      document.querySelectorAll(".theme-icon, #theme-icon").forEach((icon) => {
+        icon.textContent = next === "light" ? "☀️" : "🌙";
+      });
+      const tText = document.getElementById("theme-text");
+      if (tText) {
+        tText.textContent = next === "light" ? "Dark" : "Light";
+      }
+
+      showToast(`Switched to ${next} mode`, "info", 1800);
+      if (typeof adminAnalyticsData !== "undefined" && adminAnalyticsData) {
+        renderAnalyticsCharts(adminAnalyticsData);
+      }
+    };
+  });
+}
+
+// Immediate theme execution to prevent screen flash
+(function() {
+  const theme = localStorage.getItem("meetwise-theme") || "dark";
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+
 /**
  * MeetWise AI Planner — Frontend Interactive Controller
  * Optimized vanilla JS client with:
@@ -315,6 +365,7 @@ function renderMeetings(meetings) {
         </div>
       </div>
       <div class="meeting-actions">
+        <button class="button small btn-jitsi-call" data-action="jitsi" data-url="${escapeHtml(meeting.meeting_url || `https://meet.jit.si/MeetWise-${meeting.id}`)}" data-title="${escapeHtml(meeting.title)}" type="button" title="Join Jitsi Video Call">🎥 Join Call</button>
         <button class="button subtle" data-action="copy" data-id="${meeting.id}" title="Copy meeting details to clipboard" type="button">📋 Copy</button>
         <button class="button subtle" data-action="ics" data-id="${meeting.id}" title="Export .ics calendar invite" type="button">📅 .ics</button>
         <button class="button danger" data-action="cancel" data-id="${meeting.id}" type="button">Cancel</button>
@@ -402,6 +453,21 @@ function initDashboardDelegation() {
       } else if (action === "ics") {
         window.location.href = `/meetings/${meetingId}/ics`;
         showToast("Calendar (.ics) invite downloaded!", "success");
+      } else if (action === "jitsi") {
+        const url = button.dataset.url;
+        const title = button.dataset.title || "Meeting Call";
+        const jitsiModal = document.querySelector("#jitsi-modal");
+        const jitsiIframe = document.querySelector("#jitsi-iframe");
+        const jitsiTitle = document.querySelector("#jitsi-modal-title");
+        const jitsiExternal = document.querySelector("#jitsi-open-external");
+        if (jitsiModal && jitsiIframe) {
+          if (jitsiTitle) jitsiTitle.textContent = `🎥 ${title}`;
+          jitsiIframe.src = url;
+          if (jitsiExternal) jitsiExternal.href = url;
+          jitsiModal.classList.remove("hidden");
+        } else {
+          window.open(url, "_blank");
+        }
       } else if (action === "copy") {
         try {
           const card = button.closest(".meeting-card");
@@ -414,6 +480,17 @@ function initDashboardDelegation() {
           showToast("Could not copy to clipboard.", "error");
         }
       }
+    });
+  }
+
+  
+  const jitsiModal = document.querySelector("#jitsi-modal");
+  const jitsiCloseBtn = document.querySelector("#jitsi-modal-close");
+  if (jitsiModal && jitsiCloseBtn) {
+    jitsiCloseBtn.addEventListener("click", () => {
+      const iframe = document.querySelector("#jitsi-iframe");
+      if (iframe) iframe.src = "";
+      jitsiModal.classList.add("hidden");
     });
   }
 
@@ -647,7 +724,7 @@ function initParticipantsController() {
       }
     });
   }
-}
+
   // Quick Add Busy Slot Form
   const busyForm = document.querySelector("#busy-slot-form");
   if (busyForm) {
@@ -958,13 +1035,15 @@ function renderSuggestions(result, request) {
         }),
       });
 
-      showToast(`🎉 "${request.title}" confirmed and booked!`, "success", 5000);
+      const jitsiUrl = confirmedMeeting.meeting_url || `https://meet.jit.si/MeetWise-${confirmedMeeting.id}`;
+      showToast(`🎉 "${request.title}" confirmed! Confirmation emails with Jitsi video links sent to all attendees.`, "success", 6000);
       target.innerHTML = `
         <div class="alternative-box" style="background:var(--emerald-light); border-color:var(--emerald-border); color:var(--emerald-dark);">
           <strong style="color:var(--emerald-dark); font-size:16px;">🎉 Meeting Successfully Confirmed!</strong><br>
           "${escapeHtml(request.title)}" is booked for <strong>${escapeHtml(localDateTime(slot.start_time))}</strong>.<br>
-          Automated 15-minute reminders have been dispatched for all attendee calendars.
+          📧 Full timings and Jitsi video conference details have been emailed to all attendees and your registered email address.<br>
           <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+            <a href="${jitsiUrl}" target="_blank" class="button small btn-jitsi-call">🎥 Attend Jitsi Meeting Room →</a>
             <a href="/" class="button primary small">View on Dashboard →</a>
             <a href="/meetings/${confirmedMeeting.id}/ics" class="button secondary small">Download Calendar .ics</a>
           </div>
@@ -1036,6 +1115,20 @@ async function checkAuthAndInitUser() {
   }
 }
 
+const AVATAR_PRESETS = [
+  { id: "fox", name: "Cyber Fox", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23f97316'/><polygon points='25,20 40,45 15,45' fill='%23c2410c'/><polygon points='75,20 60,45 85,45' fill='%23c2410c'/><polygon points='50,75 25,45 75,45' fill='%23ffffff'/><polygon points='50,75 42,65 58,65' fill='%231e293b'/><circle cx='38' cy='52' r='4' fill='%230f172a'/><circle cx='62' cy='52' r='4' fill='%230f172a'/></svg>" },
+  { id: "astro", name: "Astronaut", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%231e1b4b'/><circle cx='50' cy='50' r='32' fill='%2338bdf8'/><rect x='30' y='38' width='40' height='24' rx='12' fill='%230f172a'/><circle cx='42' cy='48' r='4' fill='%2338bdf8'/><circle cx='58' cy='48' r='4' fill='%2338bdf8'/></svg>" },
+  { id: "bolt", name: "Electric Amber", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23f59e0b'/><polygon points='52,15 28,52 48,52 44,85 72,44 52,44' fill='%23ffffff'/></svg>" },
+  { id: "violet", name: "Holo Violet", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%238b5cf6'/><circle cx='50' cy='42' r='18' fill='%23ec4899'/><path d='M26,82 C26,65 74,65 74,82' fill='%23c084fc'/></svg>" },
+  { id: "owl", name: "Wisdom Teal", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%230d9488'/><circle cx='38' cy='46' r='14' fill='%23ffffff'/><circle cx='62' cy='46' r='14' fill='%23ffffff'/><circle cx='38' cy='46' r='6' fill='%230f172a'/><circle cx='62' cy='46' r='6' fill='%230f172a'/><polygon points='50,56 45,66 55,66' fill='%23f59e0b'/></svg>" },
+  { id: "diamond", name: "Diamond", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2306b6d4'/><polygon points='50,18 80,45 50,82 20,45' fill='%23e0f2fe'/><polygon points='50,18 68,45 50,82 32,45' fill='%23bae6fd'/><polygon points='50,18 50,82' stroke='%2338bdf8' stroke-width='2'/></svg>" },
+  { id: "emerald", name: "Emerald Pro", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%2310b981'/><circle cx='50' cy='42' r='18' fill='%23ffffff'/><path d='M24,84 C24,66 76,66 76,84' fill='%23d1fae5'/></svg>" },
+  { id: "robot", name: "Cyber Bot", url: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='50' fill='%23334155'/><rect x='28' y='32' width='44' height='36' rx='8' fill='%23e2e8f0'/><circle cx='40' cy='48' r='5' fill='%233b82f6'/><circle cx='60' cy='48' r='5' fill='%233b82f6'/><rect x='42' y='58' width='16' height='4' rx='2' fill='%2364748b'/><line x1='50' y1='20' x2='50' y2='32' stroke='%23e2e8f0' stroke-width='4'/><circle cx='50' cy='18' r='4' fill='%23ef4444'/></svg>" },
+];
+
+let selectedProfileAvatar = null;
+let profileModalInitialized = false;
+
 function renderUserNavigation(user) {
   const container = document.querySelector("#user-nav-container");
   if (!container) return;
@@ -1044,14 +1137,40 @@ function renderUserNavigation(user) {
     ? user.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
     : "U";
 
+  const isAdmin = user.role === "admin";
+  const roleBadgeHtml = isAdmin
+    ? `<span class="user-role-badge supreme-admin" title="Supreme Administrator Privileges Active">👑 SUPREME ADMIN</span>`
+    : `<span class="user-role-badge ${escapeHtml(user.role)}">${escapeHtml(user.role)}</span>`;
+
+  const avatarHtml = user.avatar_url
+    ? `<img class="user-avatar-img ${isAdmin ? 'supreme-avatar-ring' : ''}" src="${escapeHtml(user.avatar_url)}" alt="${escapeHtml(user.name)}" onerror="this.style.display='none'; if(this.nextElementSibling) this.nextElementSibling.style.display='grid';" /><span class="user-avatar-badge ${isAdmin ? 'supreme-avatar' : ''}" style="display:none;">${escapeHtml(initials)}</span>`
+    : `<span class="user-avatar-badge ${isAdmin ? 'supreme-avatar' : ''}">${escapeHtml(initials)}</span>`;
+
   container.innerHTML = `
-    <div class="user-pill">
-      <span class="user-avatar-badge">${escapeHtml(initials)}</span>
-      <span>${escapeHtml(user.name)}</span>
-      <span class="user-role-badge ${escapeHtml(user.role)}">${escapeHtml(user.role)}</span>
+    <div class="user-pill ${isAdmin ? 'supreme-pill' : ''}" id="user-profile-pill" role="button" tabindex="0" title="Click to view & edit your profile details and avatar">
+      <div class="user-avatar-wrapper">
+        ${avatarHtml}
+        <span class="user-avatar-edit-hint" title="Change Avatar">📷</span>
+      </div>
+      <div class="user-meta-info">
+        <span class="user-meta-name">${escapeHtml(user.name)}</span>
+        <span class="user-meta-email">${escapeHtml(user.email)}</span>
+      </div>
+      ${roleBadgeHtml}
     </div>
     <button id="logout-btn" type="button" class="btn-logout" title="Sign out">Sign Out</button>
   `;
+
+  const profilePill = document.querySelector("#user-profile-pill");
+  if (profilePill) {
+    profilePill.addEventListener("click", () => openProfileModal());
+    profilePill.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        openProfileModal();
+      }
+    });
+  }
 
   const logoutBtn = document.querySelector("#logout-btn");
   if (logoutBtn) {
@@ -1060,6 +1179,293 @@ function renderUserNavigation(user) {
         await api("/auth/logout", { method: "POST" });
       } catch {}
       window.location.replace("/login");
+    });
+  }
+
+  initProfileModal();
+}
+
+function openProfileModal() {
+  const modal = document.querySelector("#profile-modal");
+  if (!modal || !activeUser) return;
+
+  selectedProfileAvatar = activeUser.avatar_url || null;
+
+  const nameInput = document.querySelector("#profile-name-input");
+  const emailInput = document.querySelector("#profile-email-input");
+  const heroName = document.querySelector("#profile-hero-name");
+  const heroEmail = document.querySelector("#profile-hero-email");
+  const badgeContainer = document.querySelector("#profile-hero-badge-container");
+
+  if (nameInput) nameInput.value = activeUser.name || "";
+  if (emailInput) emailInput.value = activeUser.email || "";
+  if (heroName) heroName.textContent = activeUser.name || "";
+  if (heroEmail) heroEmail.textContent = activeUser.email || "";
+
+  if (badgeContainer) {
+    const isAdmin = activeUser.role === "admin";
+    badgeContainer.innerHTML = isAdmin
+      ? `<span class="user-role-badge supreme-admin">👑 SUPREME ADMIN</span>`
+      : `<span class="user-role-badge member">Member</span>`;
+  }
+
+  const currentPwd = document.querySelector("#profile-current-pwd");
+  const newPwd = document.querySelector("#profile-new-pwd");
+  const confirmPwd = document.querySelector("#profile-confirm-pwd");
+  if (currentPwd) currentPwd.value = "";
+  if (newPwd) newPwd.value = "";
+  if (confirmPwd) confirmPwd.value = "";
+
+  const alertBox = document.querySelector("#profile-modal-alert");
+  if (alertBox) {
+    alertBox.style.display = "none";
+    alertBox.textContent = "";
+  }
+
+  updateProfileModalAvatarPreview(selectedProfileAvatar);
+  highlightActiveAvatarPreset(selectedProfileAvatar);
+
+  modal.classList.remove("hidden");
+}
+
+function updateProfileModalAvatarPreview(avatarUrl) {
+  const img = document.querySelector("#profile-modal-avatar-img");
+  const fallback = document.querySelector("#profile-modal-avatar-fallback");
+  const initials = activeUser?.name
+    ? activeUser.name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()
+    : "U";
+
+  if (avatarUrl) {
+    if (img) {
+      img.src = avatarUrl;
+      img.style.display = "block";
+    }
+    if (fallback) fallback.style.display = "none";
+  } else {
+    if (img) img.style.display = "none";
+    if (fallback) {
+      fallback.textContent = initials;
+      fallback.style.display = "flex";
+    }
+  }
+}
+
+function highlightActiveAvatarPreset(url) {
+  document.querySelectorAll(".avatar-preset-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.url === url);
+  });
+}
+
+function initProfileModal() {
+  const modal = document.querySelector("#profile-modal");
+  if (!modal || profileModalInitialized) return;
+  profileModalInitialized = true;
+
+  // 1. Render Preset Avatars
+  const presetsContainer = document.querySelector("#avatar-presets-grid");
+  if (presetsContainer) {
+    presetsContainer.innerHTML = AVATAR_PRESETS.map((p) => `
+      <button type="button" class="avatar-preset-btn" data-url="${escapeHtml(p.url)}" title="${escapeHtml(p.name)}">
+        <img class="avatar-preset-svg" src="${escapeHtml(p.url)}" alt="${escapeHtml(p.name)}" />
+      </button>
+    `).join("");
+
+    presetsContainer.querySelectorAll(".avatar-preset-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selectedProfileAvatar = btn.dataset.url;
+        updateProfileModalAvatarPreview(selectedProfileAvatar);
+        highlightActiveAvatarPreset(selectedProfileAvatar);
+        showToast("Avatar preset selected! Click 'Save Changes' to apply.", "info", 2000);
+      });
+    });
+  }
+
+  // 2. Avatar Trigger Click -> Opens file selector or toggles picker
+  const avatarTrigger = document.querySelector("#profile-avatar-trigger");
+  const fileInput = document.querySelector("#profile-avatar-file-input");
+  if (avatarTrigger && fileInput) {
+    avatarTrigger.addEventListener("click", () => {
+      fileInput.click();
+    });
+  }
+
+  // 3. Upload Button Click
+  const btnUpload = document.querySelector("#btn-upload-avatar");
+  if (btnUpload && fileInput) {
+    btnUpload.addEventListener("click", () => {
+      fileInput.click();
+    });
+  }
+
+  // 4. Handle File Input Change with Compression
+  if (fileInput) {
+    fileInput.addEventListener("change", (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (!file.type.startsWith("image/")) {
+        showToast("Please select a valid image file (PNG, JPG, WebP)", "error");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (loadEvt) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          canvas.width = 128;
+          canvas.height = 128;
+          const ctx = canvas.getContext("2d");
+          const minDim = Math.min(img.width, img.height);
+          const sx = (img.width - minDim) / 2;
+          const sy = (img.height - minDim) / 2;
+          ctx.drawImage(img, sx, sy, minDim, minDim, 0, 0, 128, 128);
+          selectedProfileAvatar = canvas.toDataURL("image/webp", 0.88);
+          updateProfileModalAvatarPreview(selectedProfileAvatar);
+          highlightActiveAvatarPreset(selectedProfileAvatar);
+          showToast("Photo loaded! Click 'Save Changes' to update your account.", "info", 2500);
+        };
+        img.src = loadEvt.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // 5. Apply Custom URL
+  const btnApplyUrl = document.querySelector("#btn-apply-avatar-url");
+  const urlInput = document.querySelector("#profile-avatar-url-input");
+  if (btnApplyUrl && urlInput) {
+    btnApplyUrl.addEventListener("click", () => {
+      const url = urlInput.value.trim();
+      if (!url || (!url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("data:"))) {
+        showToast("Please enter a valid image URL starting with https://", "error");
+        return;
+      }
+      selectedProfileAvatar = url;
+      updateProfileModalAvatarPreview(selectedProfileAvatar);
+      highlightActiveAvatarPreset(selectedProfileAvatar);
+      showToast("Custom URL loaded! Click 'Save Changes' to apply.", "info", 2000);
+    });
+  }
+
+  // 6. Password Accordion Toggle
+  const btnTogglePwd = document.querySelector("#btn-toggle-password-change");
+  const pwdFields = document.querySelector("#password-change-fields");
+  const arrowIcon = document.querySelector("#accordion-arrow-icon");
+  if (btnTogglePwd && pwdFields) {
+    btnTogglePwd.addEventListener("click", () => {
+      const isHidden = pwdFields.style.display === "none";
+      pwdFields.style.display = isHidden ? "flex" : "none";
+      if (arrowIcon) arrowIcon.classList.toggle("open", isHidden);
+    });
+  }
+
+  // 7. Modal Close & Cancel
+  const closeModal = () => {
+    modal.classList.add("hidden");
+  };
+
+  const closeBtn = document.querySelector("#profile-modal-close");
+  const cancelBtn = document.querySelector("#profile-modal-cancel");
+  if (closeBtn) closeBtn.addEventListener("click", closeModal);
+  if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) closeModal();
+  });
+
+  // 8. Form Submission (PUT /auth/me)
+  const form = document.querySelector("#profile-edit-form");
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const alertBox = document.querySelector("#profile-modal-alert");
+      const submitBtn = document.querySelector("#profile-modal-submit");
+
+      const nameVal = document.querySelector("#profile-name-input").value.trim();
+      const emailVal = document.querySelector("#profile-email-input").value.trim();
+      const currentPwdVal = document.querySelector("#profile-current-pwd")?.value || "";
+      const newPwdVal = document.querySelector("#profile-new-pwd")?.value || "";
+      const confirmPwdVal = document.querySelector("#profile-confirm-pwd")?.value || "";
+
+      if (!nameVal) {
+        showToast("Name is required", "error");
+        return;
+      }
+      if (!emailVal) {
+        showToast("Email is required", "error");
+        return;
+      }
+
+      if (newPwdVal) {
+        if (!currentPwdVal) {
+          if (alertBox) {
+            alertBox.textContent = "Please enter your current password to set a new password.";
+            alertBox.style.display = "block";
+          }
+          showToast("Current password is required", "error");
+          return;
+        }
+        if (newPwdVal.length < 8) {
+          if (alertBox) {
+            alertBox.textContent = "New password must be at least 8 characters long.";
+            alertBox.style.display = "block";
+          }
+          showToast("Password must be at least 8 characters", "error");
+          return;
+        }
+        if (newPwdVal !== confirmPwdVal) {
+          if (alertBox) {
+            alertBox.textContent = "New password and confirmation do not match.";
+            alertBox.style.display = "block";
+          }
+          showToast("Passwords do not match", "error");
+          return;
+        }
+      }
+
+      try {
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Saving...";
+        }
+
+        const payload = {
+          name: nameVal,
+          email: emailVal,
+          avatar_url: selectedProfileAvatar,
+        };
+        if (newPwdVal) {
+          payload.current_password = currentPwdVal;
+          payload.new_password = newPwdVal;
+        }
+
+        const updated = await api("/auth/me", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+
+        activeUser = updated;
+        renderUserNavigation(updated);
+
+        const welcomeHeading = document.querySelector("#welcome-heading");
+        if (welcomeHeading && updated.name) {
+          welcomeHeading.textContent = `Welcome back, ${updated.name}! Smart scheduling across timezones.`;
+        }
+
+        showToast("Profile and avatar updated successfully! ✨", "success", 3000);
+        closeModal();
+      } catch (err) {
+        if (alertBox) {
+          alertBox.textContent = err.message || "Failed to update profile.";
+          alertBox.style.display = "block";
+        }
+        showToast(err.message || "Failed to update profile", "error");
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = "Save Changes";
+        }
+      }
     });
   }
 }
@@ -1297,6 +1703,7 @@ function renderAnalyticsCharts(data) {
       cutout: "68%",
     },
   });
+
   // 5. Meetings: Full Timeline
   createOrUpdateChart("chart-meetings-timeline", {
     type: "line",
@@ -1646,17 +2053,27 @@ function renderUsersTable() {
     .map((u) => {
       const isSelf = u.id === activeUser?.id;
       const nextRole = u.role === "admin" ? "member" : "admin";
-      const actionBtn = isSelf
-        ? `<span class="muted" style="font-size:12px;">(Current user)</span>`
-        : `<button type="button" class="btn-role-toggle" data-user-id="${u.id}" data-new-role="${nextRole}">Change to ${nextRole}</button>`;
+      let actionButtons = "";
+      if (isSelf) {
+        actionButtons = `<span class="muted" style="font-size:12px; font-weight:600;">(Active Admin)</span>`;
+      } else {
+        actionButtons = `
+          <button type="button" class="btn-role-toggle" data-user-id="${u.id}" data-new-role="${nextRole}">Change to ${nextRole}</button>
+          <button type="button" class="btn-user-delete" data-user-id="${u.id}" data-user-name="${escapeHtml(u.name)}" title="Permanently delete user account">🗑 Delete</button>
+        `;
+      }
+
+      const roleBadge = u.role === "admin"
+        ? `<span class="user-role-badge supreme-admin">👑 admin</span>`
+        : `<span class="user-role-badge member">member</span>`;
 
       return `
         <tr>
           <td><strong>${escapeHtml(u.name)}</strong></td>
           <td>${escapeHtml(u.email)}</td>
-          <td><span class="user-role-badge ${escapeHtml(u.role)}">${escapeHtml(u.role)}</span></td>
+          <td>${roleBadge}</td>
           <td>${escapeHtml(localDateTime(u.created_at, { dateOnly: true }))}</td>
-          <td>${actionBtn}</td>
+          <td>${actionButtons}</td>
         </tr>
       `;
     })
@@ -1680,6 +2097,30 @@ function renderUsersTable() {
       }
     });
   });
+  listEl.querySelectorAll(".btn-user-delete").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const userId = btn.dataset.userId;
+      const userName = btn.dataset.userName;
+      const confirmed = await showConfirmModal(
+        `Permanently Delete User?`,
+        `Are you sure you want to permanently delete ${userName} from the database? This action cannot be undone.`,
+        "Yes, Delete User",
+        true
+      );
+      if (!confirmed) return;
+
+      try {
+        btn.disabled = true;
+        await api(`/auth/users/${userId}`, { method: "DELETE" });
+        showToast(`User ${userName} deleted permanently from database.`, "success");
+        await loadAdminData();
+      } catch (err) {
+        btn.disabled = false;
+        showToast(err.message, "error");
+      }
+    });
+  });
+
 }
 
 function exportUsersCSV() {
@@ -1837,6 +2278,63 @@ function setupAdminInteractions() {
   // 4. Export Buttons
   document.querySelector("#admin-export-analytics-btn")?.addEventListener("click", exportAnalyticsCSV);
   document.querySelector("#admin-export-users-btn")?.addEventListener("click", exportUsersCSV);
+
+  // Supreme Admin: Create User Modal Interactions
+  const openCreateUserBtn = document.querySelector("#btn-open-create-user-modal");
+  const createUserModal = document.querySelector("#create-user-modal");
+  const createUserClose = document.querySelector("#create-user-close");
+  const createUserCancel = document.querySelector("#create-user-cancel");
+  const createUserForm = document.querySelector("#create-user-form");
+
+  if (openCreateUserBtn && createUserModal) {
+    openCreateUserBtn.addEventListener("click", () => {
+      createUserModal.classList.remove("hidden");
+      document.querySelector("#new-user-name")?.focus();
+    });
+
+    const hideCreateUser = () => {
+      createUserModal.classList.add("hidden");
+      createUserForm?.reset();
+    };
+
+    createUserClose?.addEventListener("click", hideCreateUser);
+    createUserCancel?.addEventListener("click", hideCreateUser);
+
+    createUserForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.querySelector("#new-user-name").value.trim();
+      const email = document.querySelector("#new-user-email").value.trim();
+      const password = document.querySelector("#new-user-password").value;
+      const role = document.querySelector("#new-user-role").value;
+
+      if (!name || !email || !password) {
+        return showToast("Please fill in all user fields.", "warning");
+      }
+      if (password.length < 8) {
+        return showToast("Password must be at least 8 characters long.", "warning");
+      }
+
+      const submitBtn = document.querySelector("#create-user-submit");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Creating User…";
+
+      try {
+        const created = await api("/auth/users", {
+          method: "POST",
+          body: JSON.stringify({ name, email, password, role }),
+        });
+        showToast(`🎉 User ${created.name} (${created.email}) created permanently in database!`, "success", 4500);
+        hideCreateUser();
+        await loadAdminData();
+      } catch (err) {
+        showToast(err.message, "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Create User Permanently";
+      }
+    });
+  }
+
 
   // 5. Users Filters
   const searchInput = document.querySelector("#users-search-input");

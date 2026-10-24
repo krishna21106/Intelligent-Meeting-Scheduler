@@ -1,3 +1,5 @@
+import re
+import uuid
 """FastAPI application for the AI-Powered Intelligent Meeting Planner."""
 
 import sqlite3
@@ -35,11 +37,12 @@ from backend.models import (
     ParseRequest,
     ParticipantCreate,
     UserLoginRequest,
+    UserProfileUpdateRequest,
     UserRoleUpdateRequest,
     UserSignupRequest,
 )
 from backend.nlp_parser import parse_meeting_request
-from backend.notifier import create_meeting_notifications, deliver_due_notifications
+from backend.notifier import create_meeting_notifications, deliver_due_notifications, send_meeting_confirmation_emails
 from backend.scheduler import find_common_slots, parse_datetime
 from backend.seed_data import seed_demo_data
 
@@ -145,9 +148,9 @@ def _check_overlap(
 
 
 @app.get("/")
+@app.get("/landing")
 def landing_page(request: Request) -> Response:
-    if get_optional_user(request):
-        return RedirectResponse(url="/dashboard", status_code=302)
+    """Serve the public landing page with WebGL liquid ripple background. Always accessible."""
     return FileResponse(FRONTEND / "landing.html")
 
 
@@ -160,15 +163,13 @@ def dashboard_page(request: Request) -> Response:
 
 @app.get("/login")
 def login_page(request: Request) -> Response:
-    if get_optional_user(request):
-        return RedirectResponse(url="/dashboard", status_code=302)
+    """Serve the login page. Allows users to sign in or switch accounts freely."""
     return FileResponse(FRONTEND / "login.html")
 
 
 @app.get("/signup")
 def signup_page(request: Request) -> Response:
-    if get_optional_user(request):
-        return RedirectResponse(url="/dashboard", status_code=302)
+    """Serve the registration page. Allows users to create accounts freely."""
     return FileResponse(FRONTEND / "signup.html")
 
 
@@ -203,7 +204,7 @@ def auth_signup(req: UserSignupRequest, response: Response) -> dict:
             user_id = cursor.lastrowid
             user = dict(
                 connection.execute(
-                    "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
+                    "SELECT id, name, email, role, created_at, avatar_url FROM users WHERE id = ?",
                     (user_id,),
                 ).fetchone()
             )
@@ -237,6 +238,7 @@ def auth_login(req: UserLoginRequest, request: Request, response: Response) -> d
         "email": user_row["email"],
         "role": user_row["role"],
         "created_at": user_row["created_at"],
+        "avatar_url": user_row["avatar_url"] if "avatar_url" in user_row.keys() else None,
     }
 
 
@@ -251,11 +253,60 @@ def auth_me(current_user: dict = Depends(get_current_user)) -> dict:
     return current_user
 
 
+@app.put("/auth/me")
+def auth_update_profile(
+    req: UserProfileUpdateRequest,
+    current_user: dict = Depends(get_current_user),
+) -> dict:
+    """Update current user's profile information: name, email, avatar, or password."""
+    user_id = current_user["id"]
+    new_name = req.name.strip() if req.name is not None and req.name.strip() else current_user["name"]
+    new_email = current_user["email"]
+    if req.email is not None and req.email.strip():
+        new_email = validate_email_format(req.email)
+
+    new_avatar = req.avatar_url if req.avatar_url is not None else current_user.get("avatar_url")
+
+    with get_connection() as connection:
+        # If email changed, ensure no collision with another user
+        if new_email.lower() != current_user["email"].lower():
+            existing = connection.execute(
+                "SELECT id FROM users WHERE LOWER(email) = LOWER(?) AND id != ?",
+                (new_email, user_id),
+            ).fetchone()
+            if existing:
+                raise HTTPException(status_code=409, detail="An account with this email address already exists.")
+
+        # If changing password
+        if req.new_password:
+            if not req.current_password:
+                raise HTTPException(status_code=400, detail="Current password is required to set a new password.")
+            user_full = connection.execute("SELECT password_hash FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not verify_password(req.current_password, user_full["password_hash"]):
+                raise HTTPException(status_code=400, detail="Current password is incorrect.")
+            new_hash = hash_password(req.new_password)
+            connection.execute(
+                "UPDATE users SET name = ?, email = ?, avatar_url = ?, password_hash = ? WHERE id = ?",
+                (new_name, new_email, new_avatar, new_hash, user_id),
+            )
+        else:
+            connection.execute(
+                "UPDATE users SET name = ?, email = ?, avatar_url = ? WHERE id = ?",
+                (new_name, new_email, new_avatar, user_id),
+            )
+
+        updated_row = connection.execute(
+            "SELECT id, name, email, role, created_at, avatar_url FROM users WHERE id = ?",
+            (user_id,),
+        ).fetchone()
+        return dict(updated_row)
+
+
 @app.get("/auth/users")
 def auth_list_users(admin: dict = Depends(require_admin)) -> list[dict]:
     with get_connection() as connection:
         rows = connection.execute(
-            "SELECT id, name, email, role, created_at FROM users ORDER BY created_at DESC"
+            "SELECT id, name, email, role, created_at, avatar_url FROM users ORDER BY created_at DESC"
         ).fetchall()
         return rows_as_dicts(rows)
 
@@ -277,6 +328,51 @@ def auth_update_user_role(
             "SELECT id, name, email, role, created_at FROM users WHERE id = ?", (user_id,)
         ).fetchone()
         return dict(row)
+
+
+
+@app.post("/auth/users", status_code=201)
+def admin_create_user(
+    user_data: UserSignupRequest, admin: dict = Depends(require_admin)
+) -> dict:
+    """Supreme Admin power: directly create a new workspace user (admin or member)."""
+    clean_email = user_data.email.strip().lower()
+    if not clean_email or "@" not in clean_email or "." not in clean_email:
+        raise HTTPException(status_code=422, detail="Valid email address is required.")
+    if len(user_data.password) < 8:
+        raise HTTPException(status_code=422, detail="Password must be at least 8 characters.")
+    role = user_data.role if user_data.role in ("admin", "member") else "member"
+    password_hash = hash_password(user_data.password)
+    now_iso = datetime.now(timezone.utc).isoformat()
+    with get_connection() as connection:
+        try:
+            cursor = connection.execute(
+                """INSERT INTO users(name, email, password_hash, role, created_at)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (user_data.name.strip(), clean_email, password_hash, role, now_iso),
+            )
+            user_id = cursor.lastrowid
+            row = connection.execute(
+                "SELECT id, name, email, role, created_at FROM users WHERE id = ?", (user_id,)
+            ).fetchone()
+            return dict(row)
+        except sqlite3.IntegrityError:
+            raise HTTPException(status_code=409, detail="A user with this email address already exists.")
+
+
+@app.delete("/auth/users/{user_id}")
+def admin_delete_user(
+    user_id: int, admin: dict = Depends(require_admin)
+) -> dict:
+    """Supreme Admin power: permanently delete a user from the database."""
+    if admin["id"] == user_id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own active administrator account.")
+    with get_connection() as connection:
+        user = connection.execute("SELECT id, name, email FROM users WHERE id = ?", (user_id,)).fetchone()
+        if not user:
+            raise HTTPException(status_code=404, detail="User account not found.")
+        connection.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        return {"message": f"User {user['name']} ({user['email']}) deleted permanently."}
 
 
 @app.get("/admin/analytics")
@@ -697,9 +793,13 @@ def confirm_meeting(
             ):
                 available_optional_ids.append(person_id)
         participant_ids = _all_ids(request.participant_ids, available_optional_ids)
+        clean_slug = re.sub(r"[^a-zA-Z0-9]+", "-", request.title.strip().lower()).strip("-")[:24] or "sync"
+        room_token = uuid.uuid4().hex[:8]
+        meeting_url = f"https://meet.jit.si/MeetWise-{clean_slug}-{room_token}"
+
         cursor = connection.execute(
-            """INSERT INTO meetings(title, date, start_time, end_time, status, created_at, user_id)
-               VALUES (?, ?, ?, ?, 'scheduled', ?, ?)""",
+            """INSERT INTO meetings(title, date, start_time, end_time, status, created_at, user_id, meeting_url)
+               VALUES (?, ?, ?, ?, 'scheduled', ?, ?, ?)""",
             (
                 request.title.strip(),
                 local_start.date().isoformat(),
@@ -707,6 +807,7 @@ def confirm_meeting(
                 end.isoformat(),
                 datetime.now(timezone.utc).isoformat(),
                 current_user["id"],
+                meeting_url,
             ),
         )
         meeting_id = cursor.lastrowid
@@ -716,6 +817,7 @@ def confirm_meeting(
                 (meeting_id, person_id, int(person_id in request.participant_ids)),
             )
         create_meeting_notifications(connection, meeting_id, participant_ids, start)
+        send_meeting_confirmation_emails(connection, meeting_id, current_user.get("email", ""))
         row = connection.execute("SELECT * FROM meetings WHERE id = ?", (meeting_id,)).fetchone()
         return dict(row)
 
@@ -753,6 +855,8 @@ def list_meetings(current_user: dict = Depends(get_current_user)) -> list[dict]:
 
         for meeting in meetings:
             meeting["participants"] = parts_by_meeting.get(meeting["id"], [])
+            if not meeting.get("meeting_url"):
+                meeting["meeting_url"] = f"https://meet.jit.si/MeetWise-{meeting['id']}" 
 
     return meetings
 
@@ -860,6 +964,7 @@ def reschedule_meeting(
         )
         connection.execute("DELETE FROM notifications WHERE meeting_id = ?", (meeting_id,))
         create_meeting_notifications(connection, meeting_id, participant_ids, start)
+        send_meeting_confirmation_emails(connection, meeting_id, current_user.get("email", ""))
         return dict(connection.execute("SELECT * FROM meetings WHERE id = ?", (meeting_id,)).fetchone())
 
 
@@ -925,4 +1030,3 @@ def generate_video_conference_link_stub(provider: str = "meet") -> str:
     Returns generated room URL or fallback.
     """
     return f"https://meet.google.com/xyz-{provider}-abc"
-

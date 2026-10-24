@@ -363,4 +363,3 @@ def test_double_booking_prevention(test_db):
     )
     assert is_conflict_free is False
     assert err_free is None
-

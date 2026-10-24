@@ -16,7 +16,53 @@ import time
 from typing import Optional
 from dotenv import load_dotenv
 from fastapi import Depends, HTTPException, Request, Response
-from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+try:
+    from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
+except ImportError:
+    import base64
+    import json
+
+    class BadSignature(Exception):
+        pass
+
+    class SignatureExpired(BadSignature):
+        pass
+
+    class URLSafeTimedSerializer:
+        def __init__(self, secret_key: str, salt: str = "salt"):
+            self.key = hashlib.sha256(f"{secret_key}:{salt}".encode("utf-8")).digest()
+
+        def dumps(self, obj: dict) -> str:
+            payload = {"d": obj, "t": int(time.time())}
+            raw = json.dumps(payload, separators=(',', ':')).encode("utf-8")
+            b64_payload = base64.urlsafe_b64encode(raw).decode("utf-8").rstrip("=")
+            sig = hmac.new(self.key, b64_payload.encode("utf-8"), hashlib.sha256).digest()
+            b64_sig = base64.urlsafe_b64encode(sig).decode("utf-8").rstrip("=")
+            return f"{b64_payload}.{b64_sig}"
+
+        def loads(self, token: str, max_age: Optional[int] = None) -> dict:
+            try:
+                parts = token.split(".")
+                if len(parts) != 2:
+                    raise BadSignature("Malformed token")
+                b64_payload, b64_sig = parts
+                expected_sig = hmac.new(self.key, b64_payload.encode("utf-8"), hashlib.sha256).digest()
+                b64_expected = base64.urlsafe_b64encode(expected_sig).decode("utf-8").rstrip("=")
+                if not hmac.compare_digest(b64_sig, b64_expected):
+                    raise BadSignature("Signature mismatch")
+                pad = len(b64_payload) % 4
+                if pad:
+                    b64_payload += "=" * (4 - pad)
+                raw = base64.urlsafe_b64decode(b64_payload)
+                data = json.loads(raw.decode("utf-8"))
+                created_at = data.get("t", 0)
+                if max_age is not None and (time.time() - created_at > max_age):
+                    raise SignatureExpired("Session expired")
+                return data.get("d", {})
+            except (BadSignature, SignatureExpired):
+                raise
+            except Exception as err:
+                raise BadSignature(str(err)) from err
 
 from backend.database import get_connection
 
@@ -172,7 +218,7 @@ def get_current_user(request: Request) -> dict:
 
     with get_connection() as connection:
         row = connection.execute(
-            "SELECT id, name, email, role, created_at FROM users WHERE id = ?",
+            "SELECT id, name, email, role, created_at, avatar_url FROM users WHERE id = ?",
             (user_id,),
         ).fetchone()
 

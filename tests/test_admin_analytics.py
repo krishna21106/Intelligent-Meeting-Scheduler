@@ -11,10 +11,12 @@ from backend.main import app
 @pytest.fixture
 def analytics_client(tmp_path, monkeypatch):
     """Provides a fresh isolated database with seeded demo data."""
+    from backend.seed_data import seed_demo_data
     db_path = tmp_path / "test-analytics.db"
     monkeypatch.setattr(database, "DATABASE_PATH", db_path)
-    with TestClient(app) as test_client:
-        yield test_client
+    database.initialize_database(db_path)
+    seed_demo_data(force=True)
+    yield TestClient(app)
 
 
 def test_admin_analytics_rbac_protection(analytics_client: TestClient) -> None:
@@ -184,4 +186,3 @@ def test_admin_analytics_empty_database_handling(tmp_path, monkeypatch) -> None:
         assert data["busiest_participants"]["by_meetings"] == []
         assert data["busiest_participants"]["by_busy_slots"] == []
         assert data["meetings_per_user"] == []
-

@@ -21,11 +21,15 @@
         <span class="brand-badge">AI Planner</span>
       </a>
       <nav class="nav-links">
+        <a class="nav-link" href="/" title="Public WebGL Liquid Landing Page">Landing Page</a>
         <a class="nav-link active" href="/dashboard">Dashboard</a>
         <a class="nav-link" href="/schedule">Schedule Meeting</a>
         <a class="nav-link" href="/participants">Team Directory</a>
       </nav>
-      <div id="user-nav-container" class="user-profile-nav">
+      <button id="theme-toggle" class="btn-theme-toggle" type="button" aria-label="Toggle Light and Dark Mode" title="Toggle Theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <div id="user-nav-container" class="user-profile-nav">
         <!-- Rendered dynamically by app.js: user pill + role badge + logout button -->
       </div>
     </div>
@@ -98,6 +102,20 @@
 
     <!-- Admin Analytics Dashboard Panel (Rendered only for role=admin) -->
     <section id="admin-panel" class="admin-panel" style="display: none;">
+      <!-- Supreme Admin Holographic Command Center Banner -->
+      <div class="supreme-admin-banner">
+        <div class="supreme-banner-content">
+          <div class="supreme-badge-cluster">
+            <span class="supreme-crown-icon">👑</span>
+            <span class="supreme-title">SUPREME ADMIN COMMAND CENTER</span>
+            <span class="supreme-status-pill">
+              <span class="pulse-dot"></span>
+              ALL PRIVILEGES UNLOCKED
+            </span>
+          </div>
+          <p class="supreme-subtitle">Real-time telemetry, user management, and video conferencing controls.</p>
+        </div>
+      </div>
       <!-- Header & Action Toolbar -->
       <div class="admin-header-row">
         <div>
@@ -445,6 +463,9 @@
               <option value="email_asc">Email (A–Z)</option>
             </select>
 
+                        <button id="btn-open-create-user-modal" type="button" class="button primary small supreme-create-btn" title="Create a new workspace user">
+              ⚡ Create New User
+            </button>
             <button id="admin-export-users-btn" type="button" class="btn-toolbar" title="Export User Directory to CSV">
               📥 Export Users CSV
             </button>
@@ -489,7 +510,143 @@
     </div>
   </div>
 
+    <!-- Supreme Admin: Create User Modal -->
+  <div id="create-user-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-user-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="create-user-title">⚡ Create New Workspace User</h3>
+        <button type="button" class="modal-close" id="create-user-close" aria-label="Close dialog">&times;</button>
+      </div>
+      <form id="create-user-form" class="modal-body-form">
+        <div class="form-group">
+          <label for="new-user-name">Full Name</label>
+          <input id="new-user-name" name="name" type="text" placeholder="e.g. Elena Rostova" required minlength="2">
+        </div>
+        <div class="form-group">
+          <label for="new-user-email">Email Address</label>
+          <input id="new-user-email" name="email" type="email" placeholder="e.g. elena@company.com" required>
+        </div>
+        <div class="form-group">
+          <label for="new-user-password">Password (Minimum 8 characters)</label>
+          <input id="new-user-password" name="password" type="password" placeholder="••••••••" required minlength="8">
+        </div>
+        <div class="form-group">
+          <label for="new-user-role">System Role</label>
+          <select id="new-user-role" name="role" class="filter-select" style="width: 100%;">
+            <option value="member">Standard Member</option>
+            <option value="admin">Supreme Administrator</option>
+          </select>
+        </div>
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" class="button secondary" id="create-user-cancel">Cancel</button>
+          <button type="submit" class="button primary" id="create-user-submit">Create User Permanently</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Jitsi Video Call Modal -->
+  <div id="jitsi-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jitsi-modal-title">
+    <div class="modal-dialog jitsi-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🎥</span>
+          <h3 id="jitsi-modal-title">Jitsi Video Meeting</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <a id="jitsi-open-external" href="#" target="_blank" class="button subtle small" title="Open in dedicated browser window">Open in New Tab ↗</a>
+          <button type="button" class="modal-close" id="jitsi-modal-close" aria-label="Close meeting call">&times;</button>
+        </div>
+      </div>
+      <div class="jitsi-container">
+        <iframe id="jitsi-iframe" src="" allow="camera; microphone; fullscreen; display-capture; autoplay" title="Jitsi Video Meeting Window"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile & Account Settings Modal -->
+  <div id="profile-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="modal-dialog profile-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">👤</span>
+          <h3 id="profile-modal-title">Account Profile & Settings</h3>
+        </div>
+        <button type="button" class="modal-close" id="profile-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <!-- Alert notification inside modal -->
+      <div id="profile-modal-alert" class="auth-alert" style="display:none; margin-bottom: 16px;" role="alert"></div>
+
+      <!-- Hero Avatar Section (Click to Edit) -->
+      <div class="profile-hero-section">
+        <div class="profile-avatar-container" id="profile-avatar-trigger" title="Click to change your avatar">
+          <img id="profile-modal-avatar-img" class="profile-avatar-preview" src="" alt="Profile Avatar" style="display:none;" />
+          <div id="profile-modal-avatar-fallback" class="profile-avatar-preview-fallback">U</div>
+          <div class="profile-avatar-badge">📷 Change</div>
+        </div>
+        <div class="profile-hero-meta">
+          <h4 id="profile-hero-name" class="profile-hero-name">User Name</h4>
+          <span id="profile-hero-email" class="profile-hero-email">user@example.com</span>
+          <div id="profile-hero-badge-container" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <!-- Avatar Picker Drawer -->
+      <div id="avatar-picker-section" class="avatar-picker-drawer">
+        <div class="avatar-picker-header">
+          <span class="avatar-picker-label">Choose Preset or Upload Custom</span>
+          <button type="button" class="btn-ghost-sm" id="btn-upload-avatar">📁 Upload Photo</button>
+          <input type="file" id="profile-avatar-file-input" accept="image/*" style="display:none;" />
+        </div>
+        <div class="avatar-presets-grid" id="avatar-presets-grid"></div>
+        <div class="avatar-url-input-row">
+          <input type="url" id="profile-avatar-url-input" class="auth-input input-sm" placeholder="Or paste image URL (https://...)" />
+          <button type="button" class="button secondary small" id="btn-apply-avatar-url">Apply URL</button>
+        </div>
+      </div>
+
+      <!-- Profile Details Form -->
+      <form id="profile-edit-form" class="modal-body-form">
+        <div class="form-group">
+          <label for="profile-name-input">Full Name</label>
+          <input type="text" id="profile-name-input" required />
+        </div>
+        <div class="form-group">
+          <label for="profile-email-input">Email Address</label>
+          <input type="email" id="profile-email-input" required />
+        </div>
+
+        <!-- Password Change Accordion -->
+        <div class="password-toggle-block">
+          <button type="button" class="btn-password-accordion" id="btn-toggle-password-change">
+            <span>🔑 Change Password (Optional)</span>
+            <span class="accordion-arrow" id="accordion-arrow-icon">▾</span>
+          </button>
+          <div id="password-change-fields" class="password-change-fields" style="display: none;">
+            <div class="form-group">
+              <label for="profile-current-pwd">Current Password</label>
+              <input type="password" id="profile-current-pwd" placeholder="Required if updating password" autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-new-pwd">New Password</label>
+              <input type="password" id="profile-new-pwd" placeholder="Min 8 characters" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-confirm-pwd">Confirm New Password</label>
+              <input type="password" id="profile-confirm-pwd" placeholder="Re-enter new password" autocomplete="new-password" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" class="button secondary" id="profile-modal-cancel">Cancel</button>
+          <button type="submit" class="button primary" id="profile-modal-submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <footer>MeetWise · AI-Powered Intelligent Meeting Planner for Viva & Modern Teams</footer>
 </body>
 </html>
-

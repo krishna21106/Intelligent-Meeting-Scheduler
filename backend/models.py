@@ -115,6 +115,7 @@ class UserSignupRequest(BaseModel):
     email: str = Field(..., description="Unique user email address")
     password: str = Field(..., min_length=8, description="Password (at least 8 characters)")
     role: Optional[str] = Field("member", description="Role: 'member' or 'admin'")
+    avatar_url: Optional[str] = Field(None, description="Profile avatar image URL or Data URL")
 
 
 class UserLoginRequest(BaseModel):
@@ -128,8 +129,17 @@ class UserResponse(BaseModel):
     email: str
     role: str
     created_at: str
+    avatar_url: Optional[str] = None
 
 
 class UserRoleUpdateRequest(BaseModel):
     role: str = Field(..., description="Updated role: 'admin' or 'member'")
+
+
+class UserProfileUpdateRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100, description="Updated full name")
+    email: Optional[str] = Field(None, description="Updated email address")
+    avatar_url: Optional[str] = Field(None, description="Profile avatar URL, SVG preset, or Data URL")
+    current_password: Optional[str] = Field(None, description="Current password for verification when changing password")
+    new_password: Optional[str] = Field(None, min_length=8, description="New password (minimum 8 characters)")
 

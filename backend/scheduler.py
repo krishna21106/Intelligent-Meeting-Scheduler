@@ -624,4 +624,3 @@ def check_double_booking(
                 return True, f"Conflict: {p_name} has a conflicting meeting '{m['title']}'."
 
     return False, None
-

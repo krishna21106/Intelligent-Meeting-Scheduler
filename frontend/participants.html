@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -20,11 +20,15 @@
         <span class="brand-badge">AI Planner</span>
       </a>
       <nav class="nav-links">
+        <a class="nav-link" href="/" title="Public WebGL Liquid Landing Page">Landing Page</a>
         <a class="nav-link" href="/dashboard">Dashboard</a>
         <a class="nav-link" href="/schedule">Schedule Meeting</a>
         <a class="nav-link active" href="/participants">Team Directory</a>
       </nav>
-      <div id="user-nav-container" class="user-profile-nav">
+      <button id="theme-toggle" class="btn-theme-toggle" type="button" aria-label="Toggle Light and Dark Mode" title="Toggle Theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <div id="user-nav-container" class="user-profile-nav">
         <!-- Rendered dynamically by app.js -->
       </div>
     </div>
@@ -147,6 +151,89 @@
         <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
         <button type="button" class="button primary" data-modal-confirm>Confirm</button>
       </div>
+    </div>
+  </div>
+
+  <!-- User Profile & Account Settings Modal -->
+  <div id="profile-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="modal-dialog profile-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">👤</span>
+          <h3 id="profile-modal-title">Account Profile & Settings</h3>
+        </div>
+        <button type="button" class="modal-close" id="profile-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <!-- Alert notification inside modal -->
+      <div id="profile-modal-alert" class="auth-alert" style="display:none; margin-bottom: 16px;" role="alert"></div>
+
+      <!-- Hero Avatar Section (Click to Edit) -->
+      <div class="profile-hero-section">
+        <div class="profile-avatar-container" id="profile-avatar-trigger" title="Click to change your avatar">
+          <img id="profile-modal-avatar-img" class="profile-avatar-preview" src="" alt="Profile Avatar" style="display:none;" />
+          <div id="profile-modal-avatar-fallback" class="profile-avatar-preview-fallback">U</div>
+          <div class="profile-avatar-badge">📷 Change</div>
+        </div>
+        <div class="profile-hero-meta">
+          <h4 id="profile-hero-name" class="profile-hero-name">User Name</h4>
+          <span id="profile-hero-email" class="profile-hero-email">user@example.com</span>
+          <div id="profile-hero-badge-container" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <!-- Avatar Picker Drawer -->
+      <div id="avatar-picker-section" class="avatar-picker-drawer">
+        <div class="avatar-picker-header">
+          <span class="avatar-picker-label">Choose Preset or Upload Custom</span>
+          <button type="button" class="btn-ghost-sm" id="btn-upload-avatar">📁 Upload Photo</button>
+          <input type="file" id="profile-avatar-file-input" accept="image/*" style="display:none;" />
+        </div>
+        <div class="avatar-presets-grid" id="avatar-presets-grid"></div>
+        <div class="avatar-url-input-row">
+          <input type="url" id="profile-avatar-url-input" class="auth-input input-sm" placeholder="Or paste image URL (https://...)" />
+          <button type="button" class="button secondary small" id="btn-apply-avatar-url">Apply URL</button>
+        </div>
+      </div>
+
+      <!-- Profile Details Form -->
+      <form id="profile-edit-form" class="modal-body-form">
+        <div class="form-group">
+          <label for="profile-name-input">Full Name</label>
+          <input type="text" id="profile-name-input" required />
+        </div>
+        <div class="form-group">
+          <label for="profile-email-input">Email Address</label>
+          <input type="email" id="profile-email-input" required />
+        </div>
+
+        <!-- Password Change Accordion -->
+        <div class="password-toggle-block">
+          <button type="button" class="btn-password-accordion" id="btn-toggle-password-change">
+            <span>🔑 Change Password (Optional)</span>
+            <span class="accordion-arrow" id="accordion-arrow-icon">▾</span>
+          </button>
+          <div id="password-change-fields" class="password-change-fields" style="display: none;">
+            <div class="form-group">
+              <label for="profile-current-pwd">Current Password</label>
+              <input type="password" id="profile-current-pwd" placeholder="Required if updating password" autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-new-pwd">New Password</label>
+              <input type="password" id="profile-new-pwd" placeholder="Min 8 characters" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-confirm-pwd">Confirm New Password</label>
+              <input type="password" id="profile-confirm-pwd" placeholder="Re-enter new password" autocomplete="new-password" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" class="button secondary" id="profile-modal-cancel">Cancel</button>
+          <button type="submit" class="button primary" id="profile-modal-submit">Save Changes</button>
+        </div>
+      </form>
     </div>
   </div>
 
