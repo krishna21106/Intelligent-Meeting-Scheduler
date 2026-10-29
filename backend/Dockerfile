@@ -1,15 +1,13 @@
 # Multi-stage Dockerfile for CNIP Network Manager Backend
 # Stage 1: Build JAR with Maven & Eclipse Temurin Java 21
-FROM eclipse-temurin:21-jdk-alpine AS builder
+FROM maven:3.9.9-eclipse-temurin-21-alpine AS builder
 
 WORKDIR /app
 COPY pom.xml .
-# Download dependencies layer
-RUN ./mvnw dependency:go-offline -B || true
+RUN mvn dependency:go-offline -B || true
 
 COPY src ./src
-RUN apk add --no-cache maven && \
-    mvn clean package -DskipTests
+RUN mvn clean package -DskipTests
 
 # Stage 2: Minimal Production JRE Runtime
 FROM eclipse-temurin:21-jre-alpine
