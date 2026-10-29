@@ -23,6 +23,7 @@ import {
   HardDrive,
   X,
   ExternalLink,
+  Search,
 } from 'lucide-react';
 import { Badge } from '../components/common/Badge';
 import { useNavigate } from 'react-router-dom';
@@ -48,9 +49,9 @@ const DeviceNode = ({ data }: { data: any }) => {
   };
 
   const getBorderColor = () => {
-    if (isDown) return 'border-rose-500 shadow-rose-500/20';
-    if (isWarning) return 'border-amber-500 shadow-amber-500/20';
-    return 'border-indigo-500/40 shadow-indigo-500/10';
+    if (isDown) return 'border-rose-500 shadow-rose-500/25 ring-2 ring-rose-500/20';
+    if (isWarning) return 'border-amber-500 shadow-amber-500/25 ring-2 ring-amber-500/20';
+    return 'border-indigo-500/40 shadow-indigo-500/10 hover:border-indigo-500';
   };
 
   const getBadgeColor = () => {
@@ -61,21 +62,21 @@ const DeviceNode = ({ data }: { data: any }) => {
 
   return (
     <div
-      className={`px-3.5 py-2.5 rounded-xl bg-card border-2 shadow-lg transition-all hover:scale-105 min-w-[150px] ${getBorderColor()}`}
+      className={`px-3.5 py-2.5 rounded-2xl bg-card/95 backdrop-blur-md border-2 shadow-lg transition-all duration-200 hover:scale-105 min-w-[160px] ${getBorderColor()}`}
     >
-      <Handle type="target" position={Position.Top} className="!bg-indigo-500 !w-2 !h-2" />
+      <Handle type="target" position={Position.Top} className="!bg-indigo-500 !w-2.5 !h-2.5 !border-2 !border-white" />
       <div className="flex items-center gap-2.5">
-        <div className={`p-1.5 rounded-lg ${getBadgeColor()} shadow-sm`}>{getNodeIcon()}</div>
+        <div className={`p-1.5 rounded-xl ${getBadgeColor()} shadow-md shadow-emerald-500/20`}>{getNodeIcon()}</div>
         <div className="overflow-hidden">
-          <div className="font-bold text-xs text-foreground truncate">{data.label}</div>
+          <div className="font-extrabold text-xs text-foreground truncate">{data.label}</div>
           <div className="text-[10px] text-muted-foreground font-mono truncate">{data.ip}</div>
         </div>
       </div>
-      <div className="mt-2 pt-1.5 border-t border-border flex items-center justify-between text-[10px]">
-        <span className="text-muted-foreground truncate">{data.site?.split(' - ')[1] || data.site}</span>
-        <span className="font-semibold font-tabular text-foreground">{data.cpu || 25}% CPU</span>
+      <div className="mt-2 pt-1.5 border-t border-border/80 flex items-center justify-between text-[10px]">
+        <span className="text-muted-foreground truncate max-w-[85px]">{data.site?.split(' - ')[1] || data.site}</span>
+        <span className="font-bold font-tabular text-foreground">{data.cpu || 25}% CPU</span>
       </div>
-      <Handle type="source" position={Position.Bottom} className="!bg-indigo-500 !w-2 !h-2" />
+      <Handle type="source" position={Position.Bottom} className="!bg-indigo-500 !w-2.5 !h-2.5 !border-2 !border-white" />
     </div>
   );
 };
@@ -93,6 +94,7 @@ export const TopologyPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedSite, setSelectedSite] = useState<string>('ALL');
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   const { data: graphData, isLoading } = useQuery({
     queryKey: ['topology', selectedSite],
@@ -101,13 +103,20 @@ export const TopologyPage: React.FC = () => {
 
   const nodes: Node[] = useMemo(() => {
     if (!graphData?.nodes) return [];
-    return graphData.nodes.map((n) => ({
-      id: n.id,
-      type: n.type || 'default',
-      position: n.position,
-      data: n.data,
-    }));
-  }, [graphData]);
+    return graphData.nodes.map((n) => {
+      const isMatch = searchQuery
+        ? n.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          n.data?.ip?.includes(searchQuery)
+        : true;
+      return {
+        id: n.id,
+        type: n.type || 'default',
+        position: n.position,
+        data: n.data,
+        style: searchQuery && !isMatch ? { opacity: 0.25 } : { opacity: 1 },
+      };
+    });
+  }, [graphData, searchQuery]);
 
   const edges: Edge[] = useMemo(() => {
     if (!graphData?.edges) return [];
@@ -122,40 +131,68 @@ export const TopologyPage: React.FC = () => {
     }));
   }, [graphData]);
 
+  const sites = [
+    { id: 'ALL', label: 'All Sites (Global)' },
+    { id: 'HQ - New York', label: 'HQ - New York' },
+    { id: 'DC - Ashburn', label: 'DC - Ashburn' },
+    { id: 'Branch - Frankfurt', label: 'Branch - Frankfurt' },
+  ];
+
   return (
     <div className="space-y-4 h-[calc(100vh-7rem)] flex flex-col">
       {/* Topology Header Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 flex-shrink-0">
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 flex-shrink-0">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">Interactive Topology Map</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-black tracking-tight text-foreground">Interactive Topology Map</h1>
+            <span className="hidden sm:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+              Live Mesh
+            </span>
+          </div>
           <p className="text-xs text-muted-foreground mt-0.5">
             Real-time link utilization, mesh adjacency, and status visualization
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Cluster Filter:</span>
-            <select
-              value={selectedSite}
-              onChange={(e) => setSelectedSite(e.target.value)}
-              className="px-3 py-1.5 rounded-lg border bg-card text-foreground font-medium text-xs focus:outline-none focus:ring-1 focus:ring-indigo-500"
-            >
-              <option value="ALL">All Sites (Global Mesh)</option>
-              <option value="HQ - New York">HQ - New York</option>
-              <option value="DC - Ashburn">DC - Ashburn</option>
-              <option value="Branch - Frankfurt">Branch - Frankfurt</option>
-            </select>
+        <div className="flex items-center gap-3 flex-wrap">
+          {/* Site Filter Pills */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-card border border-border/80 text-xs">
+            {sites.map((site) => (
+              <button
+                key={site.id}
+                onClick={() => setSelectedSite(site.id)}
+                className={`px-2.5 py-1 rounded-lg font-medium transition-all ${
+                  selectedSite === site.id
+                    ? 'bg-indigo-600 text-white shadow-xs font-semibold'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                {site.label}
+              </button>
+            ))}
           </div>
 
-          <div className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-card border text-[11px] font-medium text-muted-foreground">
-            <span className="flex items-center gap-1.5">
+          {/* Quick Search on Canvas */}
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-muted-foreground absolute left-3 top-2.5" />
+            <input
+              type="text"
+              placeholder="Locate node..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 pr-3 py-1.5 rounded-xl border border-border/80 bg-card text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-indigo-500 w-36 sm:w-44 shadow-xs"
+            />
+          </div>
+
+          {/* Legend Badges */}
+          <div className="hidden xl:flex items-center gap-3 px-3 py-1.5 rounded-xl bg-card border border-border/80 text-[11px] font-semibold text-muted-foreground shadow-xs">
+            <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
               <span className="w-2 h-2 rounded-full bg-emerald-500" /> UP
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
               <span className="w-2 h-2 rounded-full bg-amber-500" /> Degraded
             </span>
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400">
               <span className="w-2 h-2 rounded-full bg-rose-500" /> Down
             </span>
           </div>
@@ -163,10 +200,13 @@ export const TopologyPage: React.FC = () => {
       </div>
 
       {/* React Flow Canvas Container */}
-      <div className="relative flex-1 rounded-2xl border bg-slate-950/20 backdrop-blur-sm overflow-hidden shadow-sm">
+      <div className="relative flex-1 rounded-2xl border border-border/80 bg-slate-950/20 backdrop-blur-sm overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground">
-            Loading topology graph...
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+              <span>Rendering interactive topology graph...</span>
+            </div>
           </div>
         ) : (
           <ReactFlow
@@ -177,7 +217,7 @@ export const TopologyPage: React.FC = () => {
             fitView
             attributionPosition="bottom-right"
           >
-            <Controls className="!bg-card !border !shadow-sm !rounded-xl overflow-hidden" />
+            <Controls className="!bg-card !border !border-border !shadow-md !rounded-xl overflow-hidden" />
             <Background color="#6366f1" gap={24} size={1} />
             <MiniMap
               nodeColor={(n) => {
@@ -185,28 +225,28 @@ export const TopologyPage: React.FC = () => {
                 if (n.data?.status === 'WARNING') return '#f59e0b';
                 return '#10b981';
               }}
-              className="!bg-card !border !rounded-xl !overflow-hidden"
+              className="!bg-card !border !border-border !rounded-2xl !overflow-hidden !shadow-md"
             />
           </ReactFlow>
         )}
 
         {/* Node Details Slide-Out Drawer */}
         {selectedNode && (
-          <div className="absolute top-4 right-4 w-80 bg-card/95 backdrop-blur-md border rounded-2xl p-5 shadow-2xl z-20 space-y-4 animate-in slide-in-from-right-4 duration-200">
-            <div className="flex items-start justify-between pb-3 border-b">
+          <div className="absolute top-4 right-4 w-80 sm:w-96 bg-card/95 backdrop-blur-md border border-border rounded-2xl p-5 shadow-2xl z-20 space-y-4 animate-in slide-in-from-right-4 duration-200">
+            <div className="flex items-start justify-between pb-3 border-b border-border/80">
               <div>
-                <h3 className="font-bold text-base text-foreground tracking-tight">{selectedNode.label}</h3>
-                <p className="text-xs text-muted-foreground font-mono">{selectedNode.ip}</p>
+                <h3 className="font-extrabold text-base text-foreground tracking-tight">{selectedNode.label}</h3>
+                <p className="text-xs text-muted-foreground font-mono mt-0.5">{selectedNode.ip}</p>
               </div>
               <button
                 onClick={() => setSelectedNode(null)}
-                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted"
+                className="p-1 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2.5 text-xs">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Operating Status</span>
                 <Badge variant={selectedNode.status === 'UP' ? 'up' : selectedNode.status === 'DOWN' ? 'down' : 'warning'} dot>
@@ -214,45 +254,59 @@ export const TopologyPage: React.FC = () => {
                 </Badge>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Device Type</span>
-                <span className="font-semibold text-foreground">{selectedNode.deviceType}</span>
+                <span className="text-muted-foreground">Device Taxonomy</span>
+                <span className="font-bold text-foreground">{selectedNode.deviceType}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Site & Rack</span>
+                <span className="text-muted-foreground">Site & Location</span>
                 <span className="font-semibold text-foreground">{selectedNode.site} ({selectedNode.location})</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-muted-foreground">Model Architecture</span>
+                <span className="text-muted-foreground">Hardware Architecture</span>
                 <span className="font-semibold text-foreground">{selectedNode.vendor} {selectedNode.model}</span>
               </div>
             </div>
 
-            <div className="p-3 rounded-xl bg-muted/40 border space-y-2">
+            <div className="p-3.5 rounded-xl bg-muted/40 border border-border/60 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <Cpu className="w-3.5 h-3.5" /> CPU Load
+                <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                  <Cpu className="w-3.5 h-3.5 text-indigo-500" /> CPU Load
                 </span>
-                <span className="font-semibold font-tabular text-foreground">{selectedNode.cpu}%</span>
+                <span className="font-bold font-tabular text-foreground">{selectedNode.cpu}%</span>
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <HardDrive className="w-3.5 h-3.5" /> Memory
-                </span>
-                <span className="font-semibold font-tabular text-foreground">{selectedNode.memory}%</span>
+              <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${selectedNode.cpu > 80 ? 'bg-rose-500' : 'bg-indigo-600'}`}
+                  style={{ width: `${selectedNode.cpu}%` }}
+                />
               </div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5" /> Latency
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                  <HardDrive className="w-3.5 h-3.5 text-indigo-500" /> Memory
                 </span>
-                <span className="font-semibold font-tabular text-foreground">{selectedNode.latency}ms</span>
+                <span className="font-bold font-tabular text-foreground">{selectedNode.memory}%</span>
+              </div>
+              <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${selectedNode.memory > 85 ? 'bg-rose-500' : 'bg-indigo-600'}`}
+                  style={{ width: `${selectedNode.memory}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-xs pt-1">
+                <span className="text-muted-foreground flex items-center gap-1.5 font-medium">
+                  <Activity className="w-3.5 h-3.5 text-indigo-500" /> Latency
+                </span>
+                <span className="font-bold font-tabular text-foreground">{selectedNode.latency}ms</span>
               </div>
             </div>
 
             <button
               onClick={() => navigate(`/devices/${selectedNode.id}`)}
-              className="w-full py-2 px-3 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm flex items-center justify-center gap-2 transition"
+              className="w-full py-2.5 px-4 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/25 flex items-center justify-center gap-2 transition"
             >
-              <span>Inspect Device Detail</span>
+              <span>Inspect Full Device Profile</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </button>
           </div>

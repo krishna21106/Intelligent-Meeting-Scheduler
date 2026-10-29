@@ -14,6 +14,11 @@ import {
   AlertTriangle,
   RefreshCw,
   GitCompare,
+  Server,
+  Network,
+  Shield,
+  Wifi,
+  Tag,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -102,9 +107,9 @@ export const DeviceDetailPage: React.FC = () => {
   if (isLoading || !device) {
     return (
       <div className="space-y-6 animate-pulse">
-        <div className="h-8 bg-muted rounded w-48" />
-        <div className="h-32 bg-muted rounded-xl" />
-        <div className="h-96 bg-muted rounded-xl" />
+        <div className="h-10 bg-muted/60 rounded-xl w-64" />
+        <div className="h-32 bg-muted/60 rounded-2xl" />
+        <div className="h-96 bg-muted/60 rounded-2xl" />
       </div>
     );
   }
@@ -124,20 +129,36 @@ export const DeviceDetailPage: React.FC = () => {
     }
   };
 
+  const getDeviceIcon = (type: string) => {
+    switch (type.toUpperCase()) {
+      case 'ROUTER':
+        return <Network className="w-5 h-5 text-indigo-500" />;
+      case 'SWITCH':
+        return <Server className="w-5 h-5 text-emerald-500" />;
+      case 'FIREWALL':
+        return <Shield className="w-5 h-5 text-amber-500" />;
+      case 'ACCESS_POINT':
+        return <Wifi className="w-5 h-5 text-blue-500" />;
+      default:
+        return <Radio className="w-5 h-5 text-purple-500" />;
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Top Breadcrumb & Controls */}
+      {/* Top Breadcrumb & Hero Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigate('/devices')}
-            className="p-2 rounded-xl border bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition"
+            className="p-2.5 rounded-xl border border-border/80 bg-card hover:bg-muted text-muted-foreground hover:text-foreground transition shadow-xs"
+            title="Back to inventory"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-bold tracking-tight text-foreground">{device.name}</h1>
+              <h1 className="text-2xl font-black tracking-tight text-foreground">{device.name}</h1>
               <Badge variant={getStatusBadgeVariant(device.status)} dot>
                 {device.status}
               </Badge>
@@ -148,12 +169,12 @@ export const DeviceDetailPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2.5">
           {hasRole(['ADMIN', 'OPERATOR']) && (
             <button
               onClick={() => backupMutation.mutate()}
               disabled={backupMutation.isPending}
-              className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition disabled:opacity-50"
+              className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white shadow-md shadow-indigo-600/25 transition disabled:opacity-50"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${backupMutation.isPending ? 'animate-spin' : ''}`} />
               <span>Snapshot Config</span>
@@ -163,7 +184,7 @@ export const DeviceDetailPage: React.FC = () => {
       </div>
 
       {/* Tabs navigation */}
-      <div className="flex border-b border-border space-x-6 text-sm font-medium">
+      <div className="flex border-b border-border/80 space-x-6 text-sm font-medium">
         {[
           { key: 'overview', label: 'Overview' },
           { key: 'interfaces', label: `Interfaces (${device.interfaces?.length || 0})` },
@@ -174,9 +195,9 @@ export const DeviceDetailPage: React.FC = () => {
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key as any)}
-            className={`pb-3 relative transition-colors ${
+            className={`pb-3 relative transition-all text-xs sm:text-sm ${
               activeTab === tab.key
-                ? 'text-indigo-600 dark:text-indigo-400 font-semibold'
+                ? 'text-indigo-600 dark:text-indigo-400 font-bold'
                 : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -195,70 +216,88 @@ export const DeviceDetailPage: React.FC = () => {
             <StatCard
               title="CPU Load"
               value={latestMetric ? `${latestMetric.cpuUsage}%` : '28.4%'}
-              subValue="Real-time telemetry"
+              subValue="Real-time SNMP sample"
               icon={Cpu}
               variant={latestMetric && latestMetric.cpuUsage > 85 ? 'danger' : 'default'}
             />
             <StatCard
               title="Memory Utilization"
               value={latestMetric ? `${latestMetric.memoryUsage}%` : '42.1%'}
-              subValue="DRAM buffers"
+              subValue="DRAM buffers & cache"
               icon={HardDrive}
               variant="default"
             />
             <StatCard
               title="Ping Latency"
               value={latestMetric ? `${latestMetric.latencyMs}ms` : '1.8ms'}
-              subValue="ICMP roundtrip"
+              subValue="ICMP roundtrip jitter"
               icon={Activity}
               variant={latestMetric && latestMetric.latencyMs > 50 ? 'warning' : 'success'}
             />
             <StatCard
               title="Packet Loss"
               value={latestMetric ? `${latestMetric.packetLossPct}%` : '0.0%'}
-              subValue="Health probe loss"
+              subValue="Health probe loss rate"
               icon={Radio}
               variant={latestMetric && latestMetric.packetLossPct > 1 ? 'danger' : 'success'}
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-card rounded-xl border p-5 shadow-sm space-y-4">
-              <h2 className="text-sm font-semibold text-foreground">Hardware & System Information</h2>
-              <div className="grid grid-cols-2 gap-y-3 text-xs">
-                <div>
-                  <span className="text-muted-foreground block">Device Vendor</span>
-                  <span className="font-semibold text-foreground mt-0.5 block">{device.vendor}</span>
+            <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                  {getDeviceIcon(device.deviceType)}
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Model Architecture</span>
-                  <span className="font-semibold text-foreground mt-0.5 block">{device.model}</span>
+                  <h2 className="text-sm font-bold text-foreground">Hardware & System Information</h2>
+                  <p className="text-xs text-muted-foreground">Chassis, model, and connectivity parameters</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-y-3.5 text-xs pt-2">
+                <div>
+                  <span className="text-muted-foreground block font-medium">Device Vendor</span>
+                  <span className="font-bold text-foreground mt-0.5 block">{device.vendor}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Device Class</span>
-                  <span className="font-semibold text-foreground mt-0.5 block">{device.deviceType}</span>
+                  <span className="text-muted-foreground block font-medium">Model Architecture</span>
+                  <span className="font-bold text-foreground mt-0.5 block">{device.model}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">Physical Location</span>
-                  <span className="font-semibold text-foreground mt-0.5 block">{device.site} ({device.location})</span>
+                  <span className="text-muted-foreground block font-medium">Device Class</span>
+                  <span className="font-bold text-foreground mt-0.5 block">{device.deviceType}</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">SNMP Version</span>
-                  <span className="font-semibold text-foreground mt-0.5 block">{device.snmpVersion?.toUpperCase()}</span>
+                  <span className="text-muted-foreground block font-medium">Physical Location</span>
+                  <span className="font-bold text-foreground mt-0.5 block">{device.site} ({device.location})</span>
                 </div>
                 <div>
-                  <span className="text-muted-foreground block">SNMP Port</span>
-                  <span className="font-semibold text-foreground mt-0.5 block">{device.snmpPort}</span>
+                  <span className="text-muted-foreground block font-medium">SNMP Version</span>
+                  <span className="font-bold text-foreground mt-0.5 block">{device.snmpVersion?.toUpperCase()}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground block font-medium">SNMP Port</span>
+                  <span className="font-bold text-foreground mt-0.5 block">{device.snmpPort}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-card rounded-xl border p-5 shadow-sm space-y-4">
-              <h2 className="text-sm font-semibold text-foreground">Assigned Tags & Attributes</h2>
-              <div className="flex flex-wrap gap-2">
+            <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-xs space-y-4">
+              <div className="flex items-center gap-2.5">
+                <div className="p-2 rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
+                  <Tag className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-bold text-foreground">Tags & Telemetry Profile</h2>
+                  <p className="text-xs text-muted-foreground">Categorization tags and background polling health</p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap gap-2 pt-2">
                 {device.tags ? (
                   device.tags.split(',').map((tag, i) => (
-                    <span key={i} className="px-2.5 py-1 rounded-lg bg-muted text-xs font-medium text-foreground">
+                    <span key={i} className="px-2.5 py-1 rounded-lg bg-muted/60 border border-border/50 text-xs font-semibold text-foreground">
                       #{tag.trim()}
                     </span>
                   ))
@@ -266,30 +305,44 @@ export const DeviceDetailPage: React.FC = () => {
                   <span className="text-xs text-muted-foreground">No tags configured</span>
                 )}
               </div>
-              <div className="pt-4 border-t text-xs text-muted-foreground">
-                <span className="block font-medium text-foreground mb-1">Telemetry Status</span>
-                <span>Continuously monitored via SNMP4J simulator engine with 10s resolution.</span>
+
+              <div className="pt-4 border-t border-border/80 text-xs text-muted-foreground">
+                <span className="block font-bold text-foreground mb-1">Continuous Observability Active</span>
+                <span>Continuously monitored via SNMP4J telemetry driver with 10-second polling cadence.</span>
               </div>
             </div>
+
             {isAdmin && (
-              <section className="rounded-xl border bg-card p-5 shadow-sm">
+              <section className="sm:col-span-2 rounded-2xl border border-border/80 bg-card p-5 shadow-xs">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <h2 className="text-sm font-semibold text-foreground">Customer access</h2>
-                    <p className="mt-1 text-xs text-muted-foreground">Customers only see devices explicitly assigned to their account.</p>
+                    <h2 className="text-sm font-bold text-foreground">Customer Tenant Assignment</h2>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      Customers only see devices explicitly assigned to their tenant account.
+                    </p>
                   </div>
                   <select
                     aria-label="Assign device to customer"
                     value={device.customerId ?? ''}
                     disabled={assignCustomerMutation.isPending}
-                    onChange={event => assignCustomerMutation.mutate(event.target.value ? Number(event.target.value) : undefined)}
-                    className="w-full rounded-lg border bg-background px-3 py-2 text-sm sm:max-w-sm"
+                    onChange={(event) =>
+                      assignCustomerMutation.mutate(event.target.value ? Number(event.target.value) : undefined)
+                    }
+                    className="w-full rounded-xl border border-border/80 bg-background px-3 py-2 text-xs font-semibold text-foreground focus:outline-none focus:ring-2 focus:ring-indigo-500 sm:max-w-sm"
                   >
-                    <option value="">Unassigned</option>
-                    {customers.map(customer => <option key={customer.id} value={customer.id}>{customer.username} · {customer.email}</option>)}
+                    <option value="">Unassigned (Internal Only)</option>
+                    {customers.map((customer: any) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.username} · {customer.email}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                {assignCustomerMutation.isError && <p role="alert" className="mt-2 text-xs text-rose-600">{assignCustomerMutation.error.message}</p>}
+                {assignCustomerMutation.isError && (
+                  <p role="alert" className="mt-2 text-xs text-rose-600">
+                    {assignCustomerMutation.error.message}
+                  </p>
+                )}
               </section>
             )}
           </div>
@@ -298,46 +351,46 @@ export const DeviceDetailPage: React.FC = () => {
 
       {/* TAB 2: INTERFACES */}
       {activeTab === 'interfaces' && (
-        <div className="bg-card rounded-xl border shadow-sm overflow-hidden">
-          <div className="p-4 border-b">
-            <h2 className="text-sm font-semibold text-foreground">Device Network Interfaces</h2>
+        <div className="bg-card rounded-2xl border border-border/80 shadow-xs overflow-hidden">
+          <div className="p-5 border-b border-border/80">
+            <h2 className="text-sm font-bold text-foreground">Device Network Interfaces</h2>
             <p className="text-xs text-muted-foreground">Port status, operational speed, and octet throughput</p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-xs uppercase bg-muted/60 text-muted-foreground border-b select-none">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead className="text-[11px] uppercase tracking-wider bg-muted/50 text-muted-foreground border-b border-border/80 select-none">
                 <tr>
-                  <th className="px-4 py-3 font-semibold">Interface</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Speed</th>
-                  <th className="px-4 py-3 font-semibold">IP Address</th>
-                  <th className="px-4 py-3 font-semibold">MAC Address</th>
-                  <th className="px-4 py-3 font-semibold">Throughput (In/Out)</th>
+                  <th className="px-5 py-3.5 font-bold">Interface</th>
+                  <th className="px-5 py-3.5 font-bold">Status</th>
+                  <th className="px-5 py-3.5 font-bold">Speed</th>
+                  <th className="px-5 py-3.5 font-bold">IP Address</th>
+                  <th className="px-5 py-3.5 font-bold">MAC Address</th>
+                  <th className="px-5 py-3.5 font-bold">Throughput (In/Out)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
+              <tbody className="divide-y divide-border/60">
                 {interfaces && interfaces.length > 0 ? (
                   interfaces.map((iface) => (
                     <tr key={iface.id} className="hover:bg-muted/30 transition">
-                      <td className="px-4 py-3 font-medium text-foreground">{iface.name}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-5 py-4 font-bold text-foreground">{iface.name}</td>
+                      <td className="px-5 py-4">
                         <Badge variant={getStatusBadgeVariant(iface.status)} dot>
                           {iface.status}
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-xs font-tabular">
+                      <td className="px-5 py-4 text-xs font-tabular font-semibold">
                         {iface.speedBps ? `${iface.speedBps / 1_000_000_000} Gbps` : '1 Gbps'}
                       </td>
-                      <td className="px-4 py-3 font-mono text-xs">{iface.ipAddress || '—'}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{iface.macAddress || '—'}</td>
-                      <td className="px-4 py-3 text-xs font-tabular text-muted-foreground">
+                      <td className="px-5 py-4 font-mono text-xs text-foreground">{iface.ipAddress || '—'}</td>
+                      <td className="px-5 py-4 font-mono text-xs text-muted-foreground">{iface.macAddress || '—'}</td>
+                      <td className="px-5 py-4 text-xs font-tabular text-muted-foreground">
                         {(iface.inOctets / (1024 * 1024)).toFixed(1)} MB / {(iface.outOctets / (1024 * 1024)).toFixed(1)} MB
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-xs text-muted-foreground">
+                    <td colSpan={6} className="text-center py-10 text-xs text-muted-foreground">
                       No interfaces found for this device.
                     </td>
                   </tr>
@@ -353,13 +406,13 @@ export const DeviceDetailPage: React.FC = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* CPU & Memory Chart */}
-            <div className="bg-card rounded-xl border p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-foreground mb-1">CPU & Memory Utilization (%)</h2>
-              <p className="text-xs text-muted-foreground mb-4">Historical 24-hour telemetry curve</p>
+            <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-xs">
+              <h2 className="text-sm font-bold text-foreground mb-1">CPU & Memory Utilization (%)</h2>
+              <p className="text-xs text-muted-foreground mb-4">Historical 24-hour telemetry trend</p>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={metrics || []}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
                     <XAxis
                       dataKey="recordedAt"
                       tick={{ fontSize: 10 }}
@@ -368,28 +421,34 @@ export const DeviceDetailPage: React.FC = () => {
                     <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        borderRadius: '0.75rem',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        borderRadius: '1rem',
+                        border: '1px solid rgba(255,255,255,0.12)',
                         color: '#fff',
                         fontSize: '12px',
                       }}
                     />
-                    <Line type="monotone" dataKey="cpuUsage" name="CPU %" stroke="#6366f1" strokeWidth={2} dot={false} />
-                    <Line type="monotone" dataKey="memoryUsage" name="Memory %" stroke="#10b981" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="cpuUsage" name="CPU %" stroke="#6366f1" strokeWidth={2.5} dot={false} />
+                    <Line type="monotone" dataKey="memoryUsage" name="Memory %" stroke="#10b981" strokeWidth={2.5} dot={false} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>
             </div>
 
             {/* Latency Chart */}
-            <div className="bg-card rounded-xl border p-5 shadow-sm">
-              <h2 className="text-sm font-semibold text-foreground mb-1">Ping Latency (ms)</h2>
-              <p className="text-xs text-muted-foreground mb-4">ICMP response time jitter</p>
+            <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-xs">
+              <h2 className="text-sm font-bold text-foreground mb-1">Ping Latency (ms)</h2>
+              <p className="text-xs text-muted-foreground mb-4">ICMP roundtrip jitter and packet transit time</p>
               <div className="h-64 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={metrics || []}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                    <defs>
+                      <linearGradient id="latencyGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#f59e0b" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.12} />
                     <XAxis
                       dataKey="recordedAt"
                       tick={{ fontSize: 10 }}
@@ -398,15 +457,15 @@ export const DeviceDetailPage: React.FC = () => {
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: 'rgba(15, 23, 42, 0.9)',
-                        borderRadius: '0.75rem',
-                        border: '1px solid rgba(255,255,255,0.1)',
+                        backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                        borderRadius: '1rem',
+                        border: '1px solid rgba(255,255,255,0.12)',
                         color: '#fff',
                         fontSize: '12px',
                       }}
                       formatter={(val: any) => [`${val} ms`]}
                     />
-                    <Area type="monotone" dataKey="latencyMs" name="Latency" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.2} strokeWidth={2} />
+                    <Area type="monotone" dataKey="latencyMs" name="Latency" stroke="#f59e0b" fill="url(#latencyGrad)" strokeWidth={2.5} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -418,23 +477,25 @@ export const DeviceDetailPage: React.FC = () => {
       {/* TAB 4: CONFIG BACKUPS & DIFF */}
       {activeTab === 'config' && (
         <div className="space-y-6">
-          <div className="bg-card rounded-xl border p-5 shadow-sm">
+          <div className="bg-card rounded-2xl border border-border/80 p-5 shadow-xs">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
               <div>
-                <h2 className="text-sm font-semibold text-foreground">Configuration Version Comparison</h2>
+                <h2 className="text-sm font-bold text-foreground">Configuration Version Comparison</h2>
                 <p className="text-xs text-muted-foreground">Select two snapshots to inspect line-by-line configuration diff</p>
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 flex-wrap">
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">Version A:</span>
+                  <span className="text-muted-foreground font-medium">Version A:</span>
                   <select
                     value={selectedVersionA}
                     onChange={(e) => setSelectedVersionA(Number(e.target.value))}
-                    className="px-2.5 py-1 rounded-lg border bg-background font-semibold"
+                    className="px-3 py-1.5 rounded-xl border border-border/80 bg-background font-bold text-xs"
                   >
                     {configs?.map((c) => (
-                      <option key={c.version} value={c.version}>v{c.version} ({new Date(c.backedUpAt).toLocaleDateString()})</option>
+                      <option key={c.version} value={c.version}>
+                        v{c.version} ({new Date(c.backedUpAt).toLocaleDateString()})
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -442,14 +503,16 @@ export const DeviceDetailPage: React.FC = () => {
                 <GitCompare className="w-4 h-4 text-muted-foreground" />
 
                 <div className="flex items-center gap-2 text-xs">
-                  <span className="text-muted-foreground">Version B:</span>
+                  <span className="text-muted-foreground font-medium">Version B:</span>
                   <select
                     value={selectedVersionB}
                     onChange={(e) => setSelectedVersionB(Number(e.target.value))}
-                    className="px-2.5 py-1 rounded-lg border bg-background font-semibold"
+                    className="px-3 py-1.5 rounded-xl border border-border/80 bg-background font-bold text-xs"
                   >
                     {configs?.map((c) => (
-                      <option key={c.version} value={c.version}>v{c.version} ({new Date(c.backedUpAt).toLocaleDateString()})</option>
+                      <option key={c.version} value={c.version}>
+                        v{c.version} ({new Date(c.backedUpAt).toLocaleDateString()})
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -457,10 +520,10 @@ export const DeviceDetailPage: React.FC = () => {
             </div>
 
             {/* Diff View Box */}
-            <div className="rounded-xl border bg-slate-950 font-mono text-xs overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800 bg-slate-900/60 text-slate-400">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 font-mono text-xs overflow-hidden shadow-xl">
+              <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-slate-900/80 text-slate-400">
                 <span>Unified Diff output (v{selectedVersionA} → v{selectedVersionB})</span>
-                <span className="text-emerald-400">
+                <span className="text-emerald-400 font-bold">
                   {diffData ? `${diffData.diffLines?.filter((l) => l.changeType === 'ADDED').length || 0} additions` : ''}
                 </span>
               </div>
@@ -471,9 +534,9 @@ export const DeviceDetailPage: React.FC = () => {
                       key={idx}
                       className={`flex items-start px-2 py-0.5 rounded ${
                         line.changeType === 'ADDED'
-                          ? 'bg-emerald-500/10 text-emerald-400'
+                          ? 'bg-emerald-500/10 text-emerald-400 font-medium'
                           : line.changeType === 'REMOVED'
-                          ? 'bg-rose-500/10 text-rose-400'
+                          ? 'bg-rose-500/10 text-rose-400 font-medium'
                           : 'text-slate-300'
                       }`}
                     >
@@ -497,17 +560,17 @@ export const DeviceDetailPage: React.FC = () => {
 
       {/* TAB 5: ALERTS */}
       {activeTab === 'alerts' && (
-        <div className="bg-card rounded-xl border shadow-sm p-5 space-y-4">
-          <h2 className="text-sm font-semibold text-foreground">Device Incident Log</h2>
+        <div className="bg-card rounded-2xl border border-border/80 shadow-xs p-5 space-y-4">
+          <h2 className="text-sm font-bold text-foreground">Device Incident Log</h2>
           <div className="space-y-3">
             {alertsData?.content?.length ? (
               alertsData.content.map((alert) => (
-                <div key={alert.id} className="p-4 rounded-xl border bg-muted/20 flex items-start justify-between">
+                <div key={alert.id} className="p-4 rounded-xl border border-border/80 bg-muted/20 flex items-start justify-between">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-semibold text-foreground">{alert.title}</span>
+                        <span className="text-xs font-bold text-foreground">{alert.title}</span>
                         <Badge variant="warning">{alert.severity}</Badge>
                         <Badge variant="info">{alert.status}</Badge>
                       </div>
@@ -520,7 +583,7 @@ export const DeviceDetailPage: React.FC = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-xs text-muted-foreground">
+              <div className="text-center py-10 text-xs text-muted-foreground">
                 <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2 opacity-80" />
                 No active or historical alerts recorded for this device.
               </div>
