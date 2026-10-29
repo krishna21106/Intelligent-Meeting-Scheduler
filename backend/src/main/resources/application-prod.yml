@@ -1,0 +1,11 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/cnip_nms}
+    username: ${SPRING_DATASOURCE_USERNAME:cnip_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:cnip_secret}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: validate
+
