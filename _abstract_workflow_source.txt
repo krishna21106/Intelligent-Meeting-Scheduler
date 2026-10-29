@@ -1,0 +1,37 @@
+T|CNIP NETWORK MANAGER
+S|Project Abstract, Technologies & Operational Workflow
+P|Project overview prepared from repository documentation and implementation manifests.
+H|1. Project Abstract
+P|CNIP Network Manager (NMS) is a web-based network operations console for monitoring and administering network infrastructure from a centralized interface. It combines device inventory, live health and performance metrics, topology visualization, alert handling, IP address and VLAN management, configuration snapshots, reporting, and audit history. Role-aware access supports administrators, operators, viewers, and customers limited to assigned devices and related alerts.
+P|The application uses a React and TypeScript browser interface with a Java 21 and Spring Boot REST API. Spring Data JPA persists operational data in PostgreSQL; H2 is available for development, and Flyway applies schema migrations. Scheduled asynchronous polling records device metrics and evaluates alert rules. A simulator provides demo data without physical equipment; an SNMP4J adapter is available for real-device integration. Docker Compose packages the local stack.
+H|2. Main Capabilities
+B|Centralized device, site, interface, and ownership inventory.
+B|Monitoring of CPU, memory, latency, packet loss, traffic, uptime, and device availability.
+B|Network topology, device detail, and performance history views.
+B|Threshold-based alert generation and staff acknowledgement/resolution.
+B|IP/VLAN management, CSV inventory import/export, reports, configuration snapshots, notification preferences, and audit history.
+B|Customer portal restricted to assigned devices and their alerts.
+H|3. Technology Stack
+P|Frontend: React 18.3.1; TypeScript 5.6.3; Vite 5.4.10; React Router 6; TanStack Query 5; Tailwind CSS 3.
+P|Charts and topology: Recharts 2; XYFlow React 12; Lucide React.
+P|Backend: Java 21; Spring Boot 3.3.5; Spring MVC; Spring Data JPA; Spring Security; Bean Validation; Actuator.
+P|API and security: REST/JSON; JWT using JJWT 0.12.6; Springdoc OpenAPI 2.6.0 and Swagger UI.
+P|Monitoring: polling-service abstraction; simulator; SNMP4J 3.8.2 adapter.
+P|Persistence: PostgreSQL 16; H2 development database; Flyway migrations.
+P|Build, deployment, tests: Maven; npm; Docker; Docker Compose; Nginx; Spring Boot/Security Test; Testcontainers; Playwright.
+H|4. Architecture Overview
+P|The browser UI calls the REST API. Backend controllers expose endpoints, services enforce business rules and coordinate workflows, and repositories use JPA to persist entities. Spring Security validates bearer JWTs and role permissions. An asynchronous worker polls devices via the configured provider, saves metrics and status updates, and evaluates alerts. PostgreSQL stores operational records while Flyway manages schema changes. The simulator and H2 support development without network devices or a PostgreSQL service.
+H|5. End-to-End Operational Workflow
+N|1. Start and initialize: Docker Compose (or separate services) starts frontend, API, and database; Flyway applies migrations and startup initialization prepares configured demo data.
+N|2. Authenticate and authorize: user signs in or customer registers; API validates credentials and issues JWT; browser includes the token in protected API requests; role and ownership checks restrict access.
+N|3. Manage inventory: authorized staff browse, filter, create, update, import, or export devices; device and related interface/site/ownership data are persisted.
+N|4. Collect telemetry: backend dispatches asynchronous polling on a schedule (10 seconds by default); simulator is selected by default and SNMP polling is supported by the adapter.
+N|5. Update operational state: results update reachability/status and interface counters; CPU, memory, latency, packet loss, traffic, and uptime metrics are timestamped and stored.
+N|6. Evaluate and respond to alerts: alert rules evaluate measurements; authorized staff review, acknowledge, or resolve alerts; dashboard and device pages display current health and history.
+N|7. Review, report, and retain: users review topology, IPAM/VLANs, reports, configuration snapshots, and audit events by role; scheduled cleanup removes metrics older than seven days by default.
+H|Workflow Summary
+P|Sign-in → role-scoped dashboard → inventory and device operations → scheduled polling → metric persistence and alert evaluation → operator response → reports, audit review, and retention cleanup.
+H|6. Roles and Deployment Notes
+P|Administrator: staff-wide operations, device lifecycle, customer assignment, and settings. Operator: operational inventory changes and alert response as permitted. Viewer: read-oriented staff views. Customer: private dashboard, metrics, and alerts for assigned devices only.
+P|The repository includes Docker Compose for PostgreSQL, backend, and frontend. Standalone development requires Java 21+, Maven 3.9+, Node.js 20+, and PostgreSQL or the H2 development profile. Demo credentials and example secrets are for local use only; production should use managed secrets, TLS, backups, and monitoring.
+P|Source basis: README, backend Maven manifest, frontend package manifest, application configuration, and Docker Compose configuration.
