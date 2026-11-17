@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MeetWise — AI-Powered Intelligent Meeting Planner</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="/static/js/liquid.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-page="dashboard">
+  <!-- Calm Liquid Ripple Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="calm" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <div class="brand-icon">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-badge">AI Planner</span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link" href="/" title="Public WebGL Liquid Landing Page">Landing Page</a>
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/schedule">Schedule Meeting</a>
+        <a class="nav-link" href="/participants">Team Directory</a>
+      </nav>
+      <button id="theme-toggle" class="btn-theme-toggle" type="button" aria-label="Toggle Light and Dark Mode" title="Toggle Theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <div id="user-nav-container" class="user-profile-nav">
+        <!-- Rendered dynamically by app.js: user pill + role badge + logout button -->
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">✨ AI INTERVAL INTERSECTION SCHEDULER</p>
+        <h1 id="welcome-heading">Smart scheduling across busy calendars & timezones.</h1>
+        <p>Eliminate endless back-and-forth emails. MeetWise scans everyone's working hours, subtracts busy intervals, and finds the ideal time slot in seconds.</p>
+      </div>
+      <a class="button primary" href="/schedule">
+        <span>Schedule Meeting</span>
+        <span aria-hidden="true">→</span>
+      </a>
+    </section>
+
+    <section class="stats">
+      <article class="stat-card">
+        <span class="stat-icon">🕒</span>
+        <div class="stat-info">
+          <span class="muted">Upcoming Meetings</span>
+          <strong id="meeting-count">—</strong>
+        </div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon">👥</span>
+        <div class="stat-info">
+          <span class="muted">Team Participants</span>
+          <strong id="participant-count">—</strong>
+        </div>
+      </article>
+      <article class="stat-card">
+        <span class="stat-icon">🔔</span>
+        <div class="stat-info">
+          <span class="muted">Reminders Delivered</span>
+          <strong id="reminder-count">—</strong>
+        </div>
+      </article>
+    </section>
+
+    <div class="dashboard-grid">
+      <section class="panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">CALENDAR OVERVIEW</p>
+            <h2>Scheduled Meetings</h2>
+          </div>
+          <a class="button secondary" href="/schedule">+ New Meeting</a>
+        </div>
+        <div id="meeting-list" class="meeting-list">
+          <p class="muted">Loading scheduled meetings…</p>
+        </div>
+      </section>
+
+      <aside class="panel notification-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">REMINDER DISPATCH</p>
+            <h2>Live Notifications</h2>
+          </div>
+          <button class="button secondary" id="check-reminders-btn" type="button" title="Check & trigger due notifications">Check Due</button>
+        </div>
+        <div id="notification-list">
+          <p class="muted">Loading notifications…</p>
+        </div>
+      </aside>
+    </div>
+
+    <!-- Admin Analytics Dashboard Panel (Rendered only for role=admin) -->
+    <section id="admin-panel" class="admin-panel" style="display: none;">
+      <!-- Supreme Admin Holographic Command Center Banner -->
+      <div class="supreme-admin-banner">
+        <div class="supreme-banner-content">
+          <div class="supreme-badge-cluster">
+            <span class="supreme-crown-icon">👑</span>
+            <span class="supreme-title">SUPREME ADMIN COMMAND CENTER</span>
+            <span class="supreme-status-pill">
+              <span class="pulse-dot"></span>
+              ALL PRIVILEGES UNLOCKED
+            </span>
+          </div>
+          <p class="supreme-subtitle">Real-time telemetry, user management, and video conferencing controls.</p>
+        </div>
+      </div>
+      <!-- Header & Action Toolbar -->
+      <div class="admin-header-row">
+        <div>
+          <p class="eyebrow">SYSTEM ADMINISTRATION & INTELLIGENCE</p>
+          <h2>Analytics & Operations Dashboard</h2>
+        </div>
+
+        <div class="admin-toolbar">
+          <div class="date-range-group" role="group" aria-label="Select Analytics Time Range">
+            <button type="button" class="date-btn" data-days="7">7 Days</button>
+            <button type="button" class="date-btn active" data-days="30">30 Days</button>
+            <button type="button" class="date-btn" data-days="90">90 Days</button>
+          </div>
+          <button id="admin-refresh-btn" type="button" class="btn-toolbar" title="Refresh live analytics">
+            <span class="refresh-icon">🔄</span> Refresh
+          </button>
+          <button id="admin-export-analytics-btn" type="button" class="btn-toolbar" title="Export Analytics metrics as CSV">
+            📥 Export Analytics CSV
+          </button>
+          <span id="admin-last-updated" class="last-updated-text">Updated: just now</span>
+        </div>
+      </div>
+
+      <!-- Tab Buttons -->
+      <nav class="admin-tabs" role="tablist">
+        <button type="button" class="admin-tab-btn active" data-tab="overview" role="tab" aria-selected="true">
+          📊 Overview
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="meetings" role="tab" aria-selected="false">
+          📅 Meetings
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="people" role="tab" aria-selected="false">
+          👥 People
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="notifications" role="tab" aria-selected="false">
+          🔔 Notifications
+        </button>
+        <button type="button" class="admin-tab-btn" data-tab="users" role="tab" aria-selected="false">
+          🔐 User Directory
+        </button>
+      </nav>
+
+      <!-- TAB 1: OVERVIEW -->
+      <div id="pane-overview" class="admin-tab-pane active" role="tabpanel">
+        <!-- 8 KPI Cards Grid -->
+        <div class="admin-kpi-grid">
+          <div class="kpi-card">
+            <div class="kpi-icon">👥</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Total Users</span>
+              <span class="kpi-value" id="kpi-total-users">—</span>
+              <span class="kpi-sub">Registered accounts</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🧑‍💼</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Participants</span>
+              <span class="kpi-value" id="kpi-total-participants">—</span>
+              <span class="kpi-sub">Directory members</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">📅</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Total Meetings</span>
+              <span class="kpi-value" id="kpi-total-meetings">—</span>
+              <span class="kpi-sub">Scheduled & held</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏰</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Upcoming</span>
+              <span class="kpi-value" id="kpi-upcoming-meetings">—</span>
+              <span class="kpi-sub">Future scheduled</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🚫</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Busy Slots</span>
+              <span class="kpi-value" id="kpi-total-busy-slots">—</span>
+              <span class="kpi-sub">Calendar blocks</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏳</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Pending Reminders</span>
+              <span class="kpi-value" id="kpi-pending-notifications">—</span>
+              <span class="kpi-sub">Awaiting delivery</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">🔔</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Sent Reminders</span>
+              <span class="kpi-value" id="kpi-sent-notifications">—</span>
+              <span class="kpi-sub">Delivered on-time</span>
+            </div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-icon">⏱️</div>
+            <div class="kpi-details">
+              <span class="kpi-label">Avg Duration</span>
+              <span class="kpi-value" id="kpi-avg-duration">—</span>
+              <span class="kpi-sub">Minutes per meeting</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Overview Charts Grid -->
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meetings Activity Trend</h3>
+                <p class="chart-subtitle">Daily scheduled meeting volume over selected range</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-overview-meetings"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">User Roles Distribution</h3>
+                <p class="chart-subtitle">Admin vs Member workspace allocation</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-users-role"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Status Breakdown</h3>
+                <p class="chart-subtitle">Scheduled vs Cancelled ratio</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-status"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Notification Delivery Ratio</h3>
+                <p class="chart-subtitle">Delivered vs Queued reminders</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-notifications-ratio"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: MEETINGS -->
+      <div id="pane-meetings" class="admin-tab-pane" role="tabpanel">
+        <div class="admin-charts-grid full-width">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Volume Trend Over Time</h3>
+                <p class="chart-subtitle">Zero-filled timeline of scheduled meetings</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-timeline"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meetings by Day of Week</h3>
+                <p class="chart-subtitle">Weekly concentration pattern (Mon–Sun)</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-by-weekday"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meetings by Starting Hour</h3>
+                <p class="chart-subtitle">Peak scheduling times throughout the day (0–23h)</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-by-hour"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Duration Buckets</h3>
+                <p class="chart-subtitle">Distribution of meeting lengths in minutes</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-duration-buckets"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Meeting Status Ratios</h3>
+                <p class="chart-subtitle">Proportion of scheduled vs cancelled bookings</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-status-detail"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: PEOPLE -->
+      <div id="pane-people" class="admin-tab-pane" role="tabpanel">
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Participants by Timezone</h3>
+                <p class="chart-subtitle">Geographic dispersion across IANA timezones</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-participants-timezone"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Top Attendees (Meetings Joined)</h3>
+                <p class="chart-subtitle">Top 5 participants by scheduled meeting involvement</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-busiest-meetings"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Top Calendars (Busy Blocks)</h3>
+                <p class="chart-subtitle">Top 5 participants with most calendar commitments</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-busiest-slots"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Top Meeting Organizers</h3>
+                <p class="chart-subtitle">User accounts creating the most meetings</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-meetings-per-user"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: NOTIFICATIONS & GROWTH -->
+      <div id="pane-notifications" class="admin-tab-pane" role="tabpanel">
+        <div class="admin-charts-grid">
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Reminders Sent vs Pending</h3>
+                <p class="chart-subtitle">Automated notification dispatch status</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-notif-sent-pending"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Attendee Type (Required vs Optional)</h3>
+                <p class="chart-subtitle">Distribution of participant requirements</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-attendee-req-opt"></canvas>
+            </div>
+          </div>
+
+          <div class="chart-card full-width">
+            <div class="chart-header">
+              <div>
+                <h3 class="chart-title">Account Signups Trend Over Time</h3>
+                <p class="chart-subtitle">New user registrations per day</p>
+              </div>
+            </div>
+            <div class="chart-container">
+              <canvas id="chart-signups-trend"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: USER DIRECTORY -->
+      <div id="pane-users" class="admin-tab-pane" role="tabpanel">
+        <div class="users-filter-toolbar">
+          <div class="users-search-box">
+            <span>🔍</span>
+            <input id="users-search-input" type="text" placeholder="Search by user name or email…" aria-label="Search users">
+          </div>
+
+          <div class="users-filter-selects">
+            <select id="users-role-filter" class="filter-select" aria-label="Filter by role">
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
+            </select>
+
+            <select id="users-sort-select" class="filter-select" aria-label="Sort users">
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name_asc">Name (A–Z)</option>
+              <option value="email_asc">Email (A–Z)</option>
+            </select>
+
+                        <button id="btn-open-create-user-modal" type="button" class="button primary small supreme-create-btn" title="Create a new workspace user">
+              ⚡ Create New User
+            </button>
+            <button id="admin-export-users-btn" type="button" class="btn-toolbar" title="Export User Directory to CSV">
+              📥 Export Users CSV
+            </button>
+          </div>
+        </div>
+
+        <div style="overflow-x: auto;">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>User Name</th>
+                <th>Email Address</th>
+                <th>Current Role</th>
+                <th>Joined Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="admin-users-list">
+              <tr><td colspan="5" class="muted">Loading user directory…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Accessible Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmation</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="modal-message" class="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
+        <button type="button" class="button primary" data-modal-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+    <!-- Supreme Admin: Create User Modal -->
+  <div id="create-user-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-user-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="create-user-title">⚡ Create New Workspace User</h3>
+        <button type="button" class="modal-close" id="create-user-close" aria-label="Close dialog">&times;</button>
+      </div>
+      <form id="create-user-form" class="modal-body-form">
+        <div class="form-group">
+          <label for="new-user-name">Full Name</label>
+          <input id="new-user-name" name="name" type="text" placeholder="e.g. Elena Rostova" required minlength="2">
+        </div>
+        <div class="form-group">
+          <label for="new-user-email">Email Address</label>
+          <input id="new-user-email" name="email" type="email" placeholder="e.g. elena@company.com" required>
+        </div>
+        <div class="form-group">
+          <label for="new-user-password">Password (Minimum 8 characters)</label>
+          <input id="new-user-password" name="password" type="password" placeholder="••••••••" required minlength="8">
+        </div>
+        <div class="form-group">
+          <label for="new-user-role">System Role</label>
+          <select id="new-user-role" name="role" class="filter-select" style="width: 100%;">
+            <option value="member">Standard Member</option>
+            <option value="admin">Supreme Administrator</option>
+          </select>
+        </div>
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" class="button secondary" id="create-user-cancel">Cancel</button>
+          <button type="submit" class="button primary" id="create-user-submit">Create User Permanently</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Jitsi Video Call Modal -->
+  <div id="jitsi-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="jitsi-modal-title">
+    <div class="modal-dialog jitsi-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">🎥</span>
+          <h3 id="jitsi-modal-title">Jitsi Video Meeting</h3>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <a id="jitsi-open-external" href="#" target="_blank" class="button subtle small" title="Open in dedicated browser window">Open in New Tab ↗</a>
+          <button type="button" class="modal-close" id="jitsi-modal-close" aria-label="Close meeting call">&times;</button>
+        </div>
+      </div>
+      <div class="jitsi-container">
+        <iframe id="jitsi-iframe" src="" allow="camera; microphone; fullscreen; display-capture; autoplay" title="Jitsi Video Meeting Window"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile & Account Settings Modal -->
+  <div id="profile-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="modal-dialog profile-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">👤</span>
+          <h3 id="profile-modal-title">Account Profile & Settings</h3>
+        </div>
+        <button type="button" class="modal-close" id="profile-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <!-- Alert notification inside modal -->
+      <div id="profile-modal-alert" class="auth-alert" style="display:none; margin-bottom: 16px;" role="alert"></div>
+
+      <!-- Hero Avatar Section (Click to Edit) -->
+      <div class="profile-hero-section">
+        <div class="profile-avatar-container" id="profile-avatar-trigger" title="Click to change your avatar">
+          <img id="profile-modal-avatar-img" class="profile-avatar-preview" src="" alt="Profile Avatar" style="display:none;" />
+          <div id="profile-modal-avatar-fallback" class="profile-avatar-preview-fallback">U</div>
+          <div class="profile-avatar-badge">📷 Change</div>
+        </div>
+        <div class="profile-hero-meta">
+          <h4 id="profile-hero-name" class="profile-hero-name">User Name</h4>
+          <span id="profile-hero-email" class="profile-hero-email">user@example.com</span>
+          <div id="profile-hero-badge-container" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <!-- Avatar Picker Drawer -->
+      <div id="avatar-picker-section" class="avatar-picker-drawer">
+        <div class="avatar-picker-header">
+          <span class="avatar-picker-label">Choose Preset or Upload Custom</span>
+          <button type="button" class="btn-ghost-sm" id="btn-upload-avatar">📁 Upload Photo</button>
+          <input type="file" id="profile-avatar-file-input" accept="image/*" style="display:none;" />
+        </div>
+        <div class="avatar-presets-grid" id="avatar-presets-grid"></div>
+        <div class="avatar-url-input-row">
+          <input type="url" id="profile-avatar-url-input" class="auth-input input-sm" placeholder="Or paste image URL (https://...)" />
+          <button type="button" class="button secondary small" id="btn-apply-avatar-url">Apply URL</button>
+        </div>
+      </div>
+
+      <!-- Profile Details Form -->
+      <form id="profile-edit-form" class="modal-body-form">
+        <div class="form-group">
+          <label for="profile-name-input">Full Name</label>
+          <input type="text" id="profile-name-input" required />
+        </div>
+        <div class="form-group">
+          <label for="profile-email-input">Email Address</label>
+          <input type="email" id="profile-email-input" required />
+        </div>
+
+        <!-- Password Change Accordion -->
+        <div class="password-toggle-block">
+          <button type="button" class="btn-password-accordion" id="btn-toggle-password-change">
+            <span>🔑 Change Password (Optional)</span>
+            <span class="accordion-arrow" id="accordion-arrow-icon">▾</span>
+          </button>
+          <div id="password-change-fields" class="password-change-fields" style="display: none;">
+            <div class="form-group">
+              <label for="profile-current-pwd">Current Password</label>
+              <input type="password" id="profile-current-pwd" placeholder="Required if updating password" autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-new-pwd">New Password</label>
+              <input type="password" id="profile-new-pwd" placeholder="Min 8 characters" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-confirm-pwd">Confirm New Password</label>
+              <input type="password" id="profile-confirm-pwd" placeholder="Re-enter new password" autocomplete="new-password" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" class="button secondary" id="profile-modal-cancel">Cancel</button>
+          <button type="submit" class="button primary" id="profile-modal-submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>MeetWise · AI-Powered Intelligent Meeting Planner for Viva & Modern Teams</footer>
+</body>
+</html>

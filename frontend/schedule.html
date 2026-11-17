@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schedule a Meeting | MeetWise AI Planner</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="/static/js/liquid.js" defer></script>
+  <script src="/static/js/app.js" defer></script>
+</head>
+<body data-page="schedule">
+  <!-- Calm Liquid Ripple Canvas Background -->
+  <canvas id="liquid-canvas" data-mode="calm" aria-hidden="true"></canvas>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="/dashboard">
+        <div class="brand-icon">⚡</div>
+        <span>MeetWise</span>
+        <span class="brand-badge">AI Planner</span>
+      </a>
+      <nav class="nav-links">
+        <a class="nav-link" href="/" title="Public WebGL Liquid Landing Page">Landing Page</a>
+        <a class="nav-link" href="/dashboard">Dashboard</a>
+        <a class="nav-link active" href="/schedule">Schedule Meeting</a>
+        <a class="nav-link" href="/participants">Team Directory</a>
+      </nav>
+      <button id="theme-toggle" class="btn-theme-toggle" type="button" aria-label="Toggle Light and Dark Mode" title="Toggle Theme">
+          <span class="theme-icon">🌙</span>
+        </button>
+        <div id="user-nav-container" class="user-profile-nav">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </div>
+  </header>
+
+  <main class="container narrow">
+    <section class="page-intro">
+      <p class="eyebrow">INTELLIGENT SCHEDULER</p>
+      <h1>Plan a Conflict-Free Meeting</h1>
+      <p>Enter your meeting requirements manually or describe them in natural language. Our interval intersection engine will find the optimal slot for everyone.</p>
+    </section>
+
+    <!-- AI Natural Language Prompt Box -->
+    <section class="ai-box">
+      <div class="ai-box-header">
+        <span class="sparkle">✨</span>
+        <span>AI Natural Language Request Assistant</span>
+      </div>
+      <div class="inline-input">
+        <input id="natural-language" placeholder="e.g. Schedule a 45 minute meeting with Ravi and Priya tomorrow afternoon">
+        <button class="button primary" id="parse-button" type="button">Parse & Fill</button>
+      </div>
+      <div class="prompt-chips">
+        <span class="chip-label">Quick examples:</span>
+        <button type="button" class="prompt-chip" data-prompt="Schedule a 45 minute meeting with Ravi and Priya tomorrow afternoon">45m with Ravi & Priya tomorrow afternoon</button>
+        <button type="button" class="prompt-chip" data-prompt="30 minute sync with Liam tomorrow morning">30m sync with Liam tomorrow morning</button>
+        <button type="button" class="prompt-chip" data-prompt="1 hour sprint planning tomorrow afternoon">1 hour sprint planning tomorrow</button>
+      </div>
+    </section>
+
+    <!-- Structured Meeting Form -->
+    <section class="panel">
+      <form id="meeting-form" class="form-grid">
+        <label class="full">
+          Meeting Title / Agenda
+          <input id="meeting-title" required maxlength="200" placeholder="e.g. Architecture Sync & Sprint Review">
+        </label>
+
+        <label>
+          Target Date
+          <input id="meeting-date" type="date" required>
+        </label>
+
+        <label>
+          Duration
+          <select id="meeting-duration">
+            <option value="15">15 minutes (Quick Catchup)</option>
+            <option value="30" selected>30 minutes (Standard Sync)</option>
+            <option value="45">45 minutes (Detailed Discussion)</option>
+            <option value="60">1 hour (Review / Planning)</option>
+            <option value="90">1.5 hours (Deep Dive)</option>
+            <option value="120">2 hours (Workshop / Seminar)</option>
+          </select>
+        </label>
+
+        <label>
+          Organizer Timezone
+          <input id="meeting-timezone" value="Asia/Kolkata" required list="timezone-suggestions">
+          <datalist id="timezone-suggestions">
+            <option value="Asia/Kolkata">
+            <option value="Asia/Singapore">
+            <option value="Europe/London">
+            <option value="America/New_York">
+            <option value="America/Los_Angeles">
+            <option value="UTC">
+          </datalist>
+        </label>
+
+        <label>
+          Preferred Time Window
+          <select id="preferred-window">
+            <option value="">Any time during working hours</option>
+            <option value="morning">Morning (09:00 – 12:00)</option>
+            <option value="afternoon">Afternoon (13:00 – 17:00)</option>
+            <option value="evening">Evening (17:00 – 20:00)</option>
+          </select>
+        </label>
+
+        <fieldset class="full">
+          <legend>Required Participants <span class="muted">(All must be free for slot to be valid)</span></legend>
+          <div id="participant-options" class="check-list">Loading participants…</div>
+        </fieldset>
+
+        <fieldset class="full">
+          <legend>Optional Participants <span class="muted">(Slots are ranked higher when more optional attendees are free)</span></legend>
+          <div id="optional-participant-options" class="check-list">Loading participants…</div>
+        </fieldset>
+
+        <div class="full" style="margin-top: 8px;">
+          <button class="button primary" type="submit" style="width: 100%; padding: 14px; font-size: 15px;">
+            <span>Find Best Available Times</span>
+            <span aria-hidden="true">→</span>
+          </button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Suggested Slots Section -->
+    <section id="suggestion-section" class="panel hidden">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">RANKED TIME SLOTS</p>
+          <h2>Recommended Meeting Times</h2>
+        </div>
+      </div>
+      <div id="suggestions"></div>
+    </section>
+
+    <div id="page-message" class="message" role="status"></div>
+  </main>
+
+  <!-- Global Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Accessible Modal -->
+  <div id="confirm-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 id="modal-title">Confirmation</h3>
+        <button type="button" class="modal-close" data-modal-close aria-label="Close dialog">&times;</button>
+      </div>
+      <p id="modal-message" class="modal-body">Are you sure?</p>
+      <div class="modal-actions">
+        <button type="button" class="button secondary" data-modal-cancel>Cancel</button>
+        <button type="button" class="button primary" data-modal-confirm>Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Profile & Account Settings Modal -->
+  <div id="profile-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+    <div class="modal-dialog profile-dialog">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="font-size: 20px;">👤</span>
+          <h3 id="profile-modal-title">Account Profile & Settings</h3>
+        </div>
+        <button type="button" class="modal-close" id="profile-modal-close" aria-label="Close dialog">&times;</button>
+      </div>
+
+      <!-- Alert notification inside modal -->
+      <div id="profile-modal-alert" class="auth-alert" style="display:none; margin-bottom: 16px;" role="alert"></div>
+
+      <!-- Hero Avatar Section (Click to Edit) -->
+      <div class="profile-hero-section">
+        <div class="profile-avatar-container" id="profile-avatar-trigger" title="Click to change your avatar">
+          <img id="profile-modal-avatar-img" class="profile-avatar-preview" src="" alt="Profile Avatar" style="display:none;" />
+          <div id="profile-modal-avatar-fallback" class="profile-avatar-preview-fallback">U</div>
+          <div class="profile-avatar-badge">📷 Change</div>
+        </div>
+        <div class="profile-hero-meta">
+          <h4 id="profile-hero-name" class="profile-hero-name">User Name</h4>
+          <span id="profile-hero-email" class="profile-hero-email">user@example.com</span>
+          <div id="profile-hero-badge-container" style="margin-top: 4px;"></div>
+        </div>
+      </div>
+
+      <!-- Avatar Picker Drawer -->
+      <div id="avatar-picker-section" class="avatar-picker-drawer">
+        <div class="avatar-picker-header">
+          <span class="avatar-picker-label">Choose Preset or Upload Custom</span>
+          <button type="button" class="btn-ghost-sm" id="btn-upload-avatar">📁 Upload Photo</button>
+          <input type="file" id="profile-avatar-file-input" accept="image/*" style="display:none;" />
+        </div>
+        <div class="avatar-presets-grid" id="avatar-presets-grid"></div>
+        <div class="avatar-url-input-row">
+          <input type="url" id="profile-avatar-url-input" class="auth-input input-sm" placeholder="Or paste image URL (https://...)" />
+          <button type="button" class="button secondary small" id="btn-apply-avatar-url">Apply URL</button>
+        </div>
+      </div>
+
+      <!-- Profile Details Form -->
+      <form id="profile-edit-form" class="modal-body-form">
+        <div class="form-group">
+          <label for="profile-name-input">Full Name</label>
+          <input type="text" id="profile-name-input" required />
+        </div>
+        <div class="form-group">
+          <label for="profile-email-input">Email Address</label>
+          <input type="email" id="profile-email-input" required />
+        </div>
+
+        <!-- Password Change Accordion -->
+        <div class="password-toggle-block">
+          <button type="button" class="btn-password-accordion" id="btn-toggle-password-change">
+            <span>🔑 Change Password (Optional)</span>
+            <span class="accordion-arrow" id="accordion-arrow-icon">▾</span>
+          </button>
+          <div id="password-change-fields" class="password-change-fields" style="display: none;">
+            <div class="form-group">
+              <label for="profile-current-pwd">Current Password</label>
+              <input type="password" id="profile-current-pwd" placeholder="Required if updating password" autocomplete="current-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-new-pwd">New Password</label>
+              <input type="password" id="profile-new-pwd" placeholder="Min 8 characters" autocomplete="new-password" />
+            </div>
+            <div class="form-group">
+              <label for="profile-confirm-pwd">Confirm New Password</label>
+              <input type="password" id="profile-confirm-pwd" placeholder="Re-enter new password" autocomplete="new-password" />
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 20px;">
+          <button type="button" class="button secondary" id="profile-modal-cancel">Cancel</button>
+          <button type="submit" class="button primary" id="profile-modal-submit">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <footer>MeetWise · Uses Two-Pointer Interval Intersection & Multi-Factor Scoring Engine</footer>
+</body>
+</html>
