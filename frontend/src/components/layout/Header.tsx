@@ -12,9 +12,12 @@ import {
   CheckCircle,
   ExternalLink,
   ChevronDown,
+  Sparkles,
+  ChevronRight,
+  Shield,
 } from 'lucide-react';
-import { Badge } from '../common/Badge';
-import { useNavigate } from 'react-router-dom';
+import { Badge } from '../ui/Badge';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 
 interface HeaderProps {
   onOpenCommandPalette: () => void;
@@ -26,13 +29,14 @@ export const Header: React.FC<HeaderProps> = ({
   activeAlertCount = 0,
 }) => {
   const { user, logout } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, template, toggleTemplate } = useTheme();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
-  // Query active alerts for notification popup
+  // Active alerts for notification dropdown
   const { data: alertsData } = useQuery({
     queryKey: ['headerAlerts'],
     queryFn: () => apiClient.getAlerts({ status: 'ACTIVE', size: 5 }),
@@ -57,6 +61,8 @@ export const Header: React.FC<HeaderProps> = ({
         return 'critical';
       case 'OPERATOR':
         return 'warning';
+      case 'CUSTOMER':
+        return 'cyber';
       default:
         return 'info';
     }
@@ -65,17 +71,70 @@ export const Header: React.FC<HeaderProps> = ({
   const activeAlerts = alertsData?.content || [];
   const alertCount = activeAlertCount || activeAlerts.length;
 
+  // Breadcrumbs generator
+  const pathnames = location.pathname.split('/').filter((x) => x);
+  const routeNameMap: Record<string, string> = {
+    devices: 'Device Inventory',
+    topology: 'Topology Map',
+    alerts: 'Alerts & Incidents',
+    ipam: 'IPAM & VLANs',
+    reports: 'Reports & SLA',
+    audit: 'Audit Log',
+    settings: 'Settings',
+    'operator-requests': 'Operator Signup Requests',
+    'osi-compliance': 'OSI Model Compliance',
+    'packet-analyzer': 'Packet Analyzer',
+    'my-alerts': 'My Lab Alerts',
+    operator: 'Operator Portal',
+    router: 'Router Settings',
+    customers: 'Lab Workstations',
+  };
+
   return (
-    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-6 bg-card/85 backdrop-blur-md border-b border-border/80 transition-colors">
-      {/* Search / Command Palette Trigger */}
-      <div className="flex items-center gap-4">
+    <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-6 bg-card/85 backdrop-blur-md border-b border-border/80 transition-colors select-none">
+      {/* Left: Breadcrumbs & Global Search */}
+      <div className="flex items-center gap-5 min-w-0">
+        {/* Dynamic Breadcrumbs */}
+        <nav className="hidden md:flex items-center gap-1.5 text-xs text-muted-foreground font-medium">
+          <Link to="/" className="hover:text-foreground transition-colors">
+            CNIP
+          </Link>
+          {pathnames.length === 0 ? (
+            <>
+              <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+              <span className="text-foreground font-semibold">Dashboard</span>
+            </>
+          ) : (
+            pathnames.map((value, index) => {
+              const to = `/${pathnames.slice(0, index + 1).join('/')}`;
+              const isLast = index === pathnames.length - 1;
+              const title = routeNameMap[value] || value;
+              return (
+                <React.Fragment key={to}>
+                  <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
+                  {isLast ? (
+                    <span className="text-foreground font-semibold truncate max-w-[150px]">
+                      {title}
+                    </span>
+                  ) : (
+                    <Link to={to} className="hover:text-foreground transition-colors truncate max-w-[120px]">
+                      {title}
+                    </Link>
+                  )}
+                </React.Fragment>
+              );
+            })
+          )}
+        </nav>
+
+        {/* Search / Command Palette Trigger */}
         <button
           onClick={onOpenCommandPalette}
-          className="flex items-center gap-3 px-3.5 py-2 text-sm text-muted-foreground bg-muted/40 hover:bg-muted/80 hover:border-indigo-500/40 border border-border/80 rounded-xl transition-all w-64 md:w-80 group text-left shadow-sm"
+          className="flex items-center gap-2.5 px-3 py-1.5 text-xs text-muted-foreground bg-muted/40 hover:bg-muted/80 hover:border-indigo-500/40 border border-border/70 rounded-xl transition-all w-52 sm:w-64 md:w-72 group text-left shadow-xs"
         >
-          <Search className="w-4 h-4 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
-          <span className="flex-1 truncate text-xs font-medium">Search devices, IPs, VLANs...</span>
-          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-semibold text-muted-foreground bg-background/80 border rounded-md shadow-xs">
+          <Search className="w-3.5 h-3.5 text-muted-foreground group-hover:text-indigo-500 transition-colors" />
+          <span className="flex-1 truncate text-xs">Search devices, packets, IPs...</span>
+          <kbd className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-semibold text-muted-foreground bg-background border rounded shadow-2xs">
             <span>Ctrl</span>
             <span>K</span>
           </kbd>
@@ -84,14 +143,31 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right Controls */}
       <div className="flex items-center gap-3">
-        {/* Live Network Heartbeat Indicator */}
-        <div className="hidden lg:flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+        {/* Live Lab Network Heartbeat Indicator */}
+        <div className="hidden lg:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
           <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
           </span>
-          <span className="tracking-tight">Telemetry Live • 40 Nodes</span>
+          <span className="tracking-tight text-[11px]">Lab Network Live</span>
         </div>
+
+        {/* Template Quick Switch (Cyber Dark NOC <-> Clean Light Campus) */}
+        <button
+          onClick={toggleTemplate}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-border/70 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/60 transition shadow-xs"
+          title={`Switch visual template (Currently: ${template === 'cyber-dark' ? 'Cyber Dark NOC' : 'Clean Light Campus'})`}
+        >
+          <Sparkles className="w-3.5 h-3.5 text-indigo-500" />
+          <span className="hidden xl:inline text-[11px]">
+            {template === 'cyber-dark' ? 'Cyber Dark NOC' : 'Clean Light Campus'}
+          </span>
+          {theme === 'dark' ? (
+            <Sun className="w-3.5 h-3.5 text-amber-400" />
+          ) : (
+            <Moon className="w-3.5 h-3.5 text-indigo-600" />
+          )}
+        </button>
 
         {/* Notification Bell with Dropdown */}
         <div className="relative">
@@ -107,11 +183,11 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
             title="Active notifications"
           >
-            <Bell className="w-5 h-5" />
+            <Bell className="w-4 h-4" />
             {alertCount > 0 && (
               <span className="absolute top-1.5 right-1.5 flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
               </span>
             )}
           </button>
@@ -123,7 +199,9 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="absolute right-0 mt-2 w-80 sm:w-96 p-2 rounded-2xl bg-card border border-border shadow-2xl z-50 text-sm animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="flex items-center justify-between px-3 py-2 border-b border-border/80">
                   <div className="flex items-center gap-2">
-                    <span className="font-semibold text-foreground text-xs uppercase tracking-wider">Active Alerts</span>
+                    <span className="font-semibold text-foreground text-xs uppercase tracking-wider">
+                      Active Alerts
+                    </span>
                     <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-500">
                       {alertCount}
                     </span>
@@ -143,19 +221,34 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="max-h-72 overflow-y-auto divide-y divide-border/50 py-1">
                   {activeAlerts.length > 0 ? (
                     activeAlerts.slice(0, 4).map((alert: any) => (
-                      <div key={alert.id} className="p-3 hover:bg-muted/40 rounded-xl transition flex flex-col gap-1.5">
+                      <div
+                        key={alert.id}
+                        className="p-3 hover:bg-muted/40 rounded-xl transition flex flex-col gap-1.5"
+                      >
                         <div className="flex items-center justify-between">
                           <Badge
-                            variant={alert.severity === 'CRITICAL' ? 'critical' : alert.severity === 'WARNING' ? 'warning' : 'info'}
+                            variant={
+                              alert.severity === 'CRITICAL'
+                                ? 'critical'
+                                : alert.severity === 'WARNING'
+                                ? 'warning'
+                                : 'info'
+                            }
                             dot
+                            size="sm"
                           >
                             {alert.severity}
                           </Badge>
                           <span className="text-[10px] text-muted-foreground font-tabular">
-                            {new Date(alert.triggeredAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(alert.triggeredAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
                           </span>
                         </div>
-                        <p className="text-xs font-semibold text-foreground leading-tight">{alert.title}</p>
+                        <p className="text-xs font-semibold text-foreground leading-tight">
+                          {alert.title}
+                        </p>
                         <p className="text-[11px] text-muted-foreground line-clamp-1">{alert.message}</p>
                         <div className="flex items-center justify-end pt-1">
                           <button
@@ -180,19 +273,6 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </div>
 
-        {/* Theme Toggle Button */}
-        <button
-          onClick={toggleTheme}
-          className="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-all border border-transparent hover:border-border"
-          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-        >
-          {theme === 'dark' ? (
-            <Sun className="w-5 h-5 text-amber-400 transition-transform rotate-0 hover:rotate-45" />
-          ) : (
-            <Moon className="w-5 h-5 text-indigo-600 transition-transform -rotate-12 hover:rotate-0" />
-          )}
-        </button>
-
         <div className="h-6 w-px bg-border/80 mx-1" />
 
         {/* User Profile Menu */}
@@ -204,12 +284,16 @@ export const Header: React.FC<HeaderProps> = ({
             }}
             className="flex items-center gap-2.5 p-1.5 pl-2 rounded-xl hover:bg-muted/60 border border-transparent hover:border-border transition-all text-left"
           >
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-sm shadow-sm shadow-indigo-500/20">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-600 to-violet-500 text-white flex items-center justify-center font-bold text-xs shadow-xs">
               {user?.username ? user.username.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="hidden sm:block text-xs leading-tight">
-              <span className="font-semibold text-foreground block">{user?.username}</span>
-              <span className="text-[10px] text-muted-foreground capitalize">{userRole?.toLowerCase()}</span>
+              <span className="font-semibold text-foreground block truncate max-w-[100px]">
+                {user?.username}
+              </span>
+              <span className="text-[10px] text-muted-foreground capitalize">
+                {userRole?.toLowerCase()}
+              </span>
             </div>
             <ChevronDown className="w-3.5 h-3.5 text-muted-foreground hidden sm:block" />
           </button>
@@ -219,10 +303,13 @@ export const Header: React.FC<HeaderProps> = ({
               <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
               <div className="absolute right-0 mt-2 w-56 p-1.5 rounded-2xl bg-card border border-border shadow-2xl z-50 text-sm animate-in fade-in slide-in-from-top-2 duration-150">
                 <div className="px-3 py-2.5 border-b border-border/80">
-                  <p className="font-semibold text-foreground text-xs">{user?.username}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">{user?.email}</p>
+                  <div className="flex items-center gap-1.5">
+                    <Shield className="w-3.5 h-3.5 text-indigo-500" />
+                    <p className="font-semibold text-foreground text-xs">{user?.username}</p>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground truncate mt-0.5">{user?.email}</p>
                   <div className="mt-2">
-                    <Badge variant={getRoleBadgeVariant(userRole)} dot>
+                    <Badge variant={getRoleBadgeVariant(userRole)} dot size="sm">
                       {userRole}
                     </Badge>
                   </div>

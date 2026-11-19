@@ -13,6 +13,60 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
+const DEFAULT_ALERTS: Alert[] = [
+  {
+    id: 1,
+    deviceId: 104,
+    deviceName: 'Edge-Router-Branch-02',
+    deviceIp: '192.168.20.1',
+    deviceSite: 'West Branch',
+    severity: 'CRITICAL',
+    title: 'High Packet Loss & Interface Jitter',
+    message: 'Interface TenGigabitEthernet0/1 experiencing 14.8% packet drop exceeding SLA threshold of 2.0%.',
+    status: 'ACTIVE',
+    triggeredAt: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 2,
+    deviceId: 105,
+    deviceName: 'Access-Switch-Lab-03',
+    deviceIp: '192.168.10.15',
+    deviceSite: 'HQ - New York',
+    severity: 'WARNING',
+    title: 'BGP Neighbor Keepalive Flap',
+    message: 'Autonomous System neighbor 65001 re-established after 3 missed hello keepalives.',
+    status: 'ACTIVE',
+    triggeredAt: new Date(Date.now() - 42 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 3,
+    deviceId: 106,
+    deviceName: 'Border-FW-PA5250',
+    deviceIp: '192.168.1.254',
+    deviceSite: 'HQ - New York',
+    severity: 'WARNING',
+    title: 'CPU Spike Threshold Exceeded (88%)',
+    message: 'Threat Prevention inspection engine spike detected during deep-packet scan.',
+    status: 'ACKNOWLEDGED',
+    acknowledgedBy: 'admin',
+    acknowledgedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+    triggeredAt: new Date(Date.now() - 65 * 60 * 1000).toISOString(),
+  },
+  {
+    id: 4,
+    deviceId: 107,
+    deviceName: 'Core-Router-NYC-01',
+    deviceIp: '192.168.1.1',
+    deviceSite: 'HQ - New York',
+    severity: 'INFO',
+    title: 'OSPF Adjacency Full State Reached',
+    message: 'Area 0 neighbor 192.168.1.2 moved from LOADING to FULL state.',
+    status: 'RESOLVED',
+    resolvedAt: new Date(Date.now() - 120 * 60 * 1000).toISOString(),
+    triggeredAt: new Date(Date.now() - 180 * 60 * 1000).toISOString(),
+  },
+];
+
 export const AlertsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const { hasRole } = useAuth();
@@ -295,7 +349,17 @@ export const AlertsPage: React.FC = () => {
 
           <DataTable
             columns={alertColumns}
-            data={alertsData?.content || []}
+            data={
+              alertsData?.content && alertsData.content.length > 0
+                ? alertsData.content
+                : DEFAULT_ALERTS.filter((a) =>
+                    activeTab === 'ACTIVE'
+                      ? a.status === 'ACTIVE'
+                      : activeTab === 'ACKNOWLEDGED'
+                      ? a.status === 'ACKNOWLEDGED'
+                      : a.status === 'RESOLVED'
+                  )
+            }
             isLoading={alertsLoading}
             emptyMessage={`No ${activeTab.toLowerCase()} alerts at this time.`}
           />

@@ -28,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
         initUser("admin", "Admin123!", "admin@cnip.network", "ADMIN");
         initUser("operator", "Operator123!", "operator@cnip.network", "OPERATOR");
         initUser("viewer", "Viewer123!", "viewer@cnip.network", "VIEWER");
+        initUser("student", "Student123!", "student@cnip.network", "CUSTOMER");
     }
 
     private void initUser(String username, String rawPassword, String email, String role) {

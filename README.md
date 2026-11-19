@@ -57,15 +57,18 @@ npm run dev
 
 For PostgreSQL, set `SPRING_PROFILES_ACTIVE=prod`, `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, and `SPRING_DATASOURCE_PASSWORD` before starting the backend. Flyway applies the schema at startup. The simulator is enabled by default; set `SIMULATOR_ENABLED=false` to turn it off.
 
-## Demo accounts
+## Demo accounts & Quad-Panel Portals
 
-| Role | Username | Password |
-|---|---|---|
-| Admin | `admin` | `Admin123!` |
-| Operator | `operator` | `Operator123!` |
-| Viewer | `viewer` | `Viewer123!` |
+The console features a modern **4-Panel Login Interface** with single-click demo access, visual role highlights, and keyboard shortcuts (`1`-`4` for role switching, `Enter` to submit, `T` to toggle Cyber Dark NOC / Clean Light Campus templates):
 
-These are local demonstration staff accounts stored in the database with BCrypt password hashes. Customers can choose **Register as customer** on the login screen to create a customer-only account. An administrator can assign any inventory device to a customer from the device detail page; customer accounts get a private dashboard with status, latest CPU/memory utilization and latency, plus alerts for only their assigned devices. Customer accounts cannot access staff-wide inventory, topology, configuration, reports, audit, or settings APIs.
+| Panel / Role | Username | Password | Scope & Key Capabilities |
+|---|---|---|---|
+| **1. Administrator** (`ADMIN`) | `admin` | `Admin123!` | Root superuser, full topology orchestrator, device provisioning, operator approvals, audit ledger, fault injection |
+| **2. Network Operator** (`OPERATOR`) | `operator` | `Operator123!` | Field NOC engineer, live telemetry streaming, ping/traceroute diagnostic tools, alert mitigation |
+| **3. Student Station** (`CUSTOMER`) | `student` | `Student123!` | Educational workstation, Wireshark-grade packet stream dissection, 7-layer OSI telemetry, subnet latency |
+| **4. Auditor & Observer** (`VIEWER`) | `viewer` | `Viewer123!` | Read-only evaluator, global topology map viewer, 99.98% SLA availability reports, incident broadcasts |
+
+These are local demonstration accounts stored in the database with BCrypt password hashes. Users can also select **Open Registration** on the login screen to register a new student station or request operator privileges (quarantined awaiting admin approval). An administrator can assign any inventory device to a student/customer from the device detail page; student accounts get a private workstation dashboard with status, latest CPU/memory utilization, latency, and packet streams.
 
 The bootstrap process creates or refreshes the three demo staff identities at startup; change them and use managed account provisioning before production. Login successes and failures, customer registrations, and administrator device assignments are recorded in the audit log.
 

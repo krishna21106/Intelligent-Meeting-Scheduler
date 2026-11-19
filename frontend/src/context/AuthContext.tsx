@@ -51,9 +51,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const authRes = await api.auth.login({ username, password });
       if (allowedRoles && !allowedRoles.includes(authRes.user.role)) {
-        throw new Error(allowedRoles.includes('CUSTOMER')
-          ? 'Use customer sign-in for customer accounts.'
-          : 'Customer accounts must use customer sign-in.');
+        const targetPortal =
+          authRes.user.role === 'ADMIN'
+            ? 'Administrator'
+            : authRes.user.role === 'OPERATOR'
+            ? 'Network Operator'
+            : authRes.user.role === 'CUSTOMER'
+            ? 'Student Station'
+            : 'Auditor & Observer';
+        throw new Error(
+          `This account has the '${authRes.user.role}' role. Please switch to the ${targetPortal} panel above.`
+        );
       }
       setToken(authRes.token);
       setUser(authRes.user);

@@ -2,6 +2,7 @@ package com.cnip.nms.controller;
 
 import com.cnip.nms.dto.AuthRequest;
 import com.cnip.nms.dto.AuthResponse;
+import com.cnip.nms.dto.CustomerRegistrationRequest;
 import com.cnip.nms.dto.UserDto;
 import com.cnip.nms.security.SecurityUtils;
 import com.cnip.nms.service.AuthService;
@@ -24,6 +25,12 @@ public class AuthController {
     @Operation(summary = "Authenticate user and receive JWT token")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody AuthRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/register")
+    @Operation(summary = "Register customer / student station account")
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody CustomerRegistrationRequest request) {
+        return ResponseEntity.ok(authService.registerCustomer(request));
     }
 
     @GetMapping("/me")

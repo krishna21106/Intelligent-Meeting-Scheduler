@@ -47,21 +47,43 @@ export class ApiClient {
     });
 
     if (response.status === 401) {
-      localStorage.removeItem('cnip_token');
-      localStorage.removeItem('cnip_user');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      if (endpoint !== '/auth/login') {
+        localStorage.removeItem('cnip_token');
+        localStorage.removeItem('cnip_user');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
+        throw new Error('Session expired. Please log in again.');
+      } else {
+        try {
+          const errBody = await response.json();
+          throw new Error(errBody.message || errBody.error || errBody.detail || 'Invalid username or password. Please verify credentials.');
+        } catch (e: any) {
+          throw new Error(e.message || 'Invalid username or password. Please verify credentials.');
+        }
       }
-      throw new Error('Session expired. Please log in again.');
     }
 
     if (!response.ok) {
       let errorMessage = 'An error occurred';
       try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorData.error || errorMessage;
+        const text = await response.text();
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.message || errorData.error || errorData.detail || errorMessage;
+        } catch {
+          if (response.status === 502 || response.status === 503 || response.status === 504 || (response.status === 500 && text.includes('ECONNREFUSED'))) {
+            errorMessage = 'Backend service is not running or unreachable. Please start the backend service (run-windows-service.bat or run-service-background.vbs).';
+          } else {
+            errorMessage = response.statusText || errorMessage;
+          }
+        }
       } catch {
         errorMessage = response.statusText || errorMessage;
+      }
+
+      if (errorMessage === 'Internal Server Error' && response.status === 500) {
+        errorMessage = 'Internal Server Error: Backend service is unreachable or encountered an unexpected issue. Please verify backend status.';
       }
       throw new Error(errorMessage);
     }

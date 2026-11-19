@@ -1,23 +1,33 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Theme = 'dark' | 'light';
+export type Theme = 'dark' | 'light';
+export type TemplateId = 'cyber-dark' | 'clean-light';
 
 interface ThemeContextType {
   theme: Theme;
+  template: TemplateId;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+  setTemplate: (template: TemplateId) => void;
+  toggleTemplate: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [theme, setThemeState] = useState<Theme>(() => {
-    const saved = localStorage.getItem('cnip_theme') as Theme;
-    return saved === 'light' ? 'light' : 'dark';
+  const [template, setTemplateState] = useState<TemplateId>(() => {
+    const saved = localStorage.getItem('cnip_template') as TemplateId;
+    return saved === 'clean-light' ? 'clean-light' : 'cyber-dark';
   });
+
+  const theme: Theme = template === 'clean-light' ? 'light' : 'dark';
 
   useEffect(() => {
     const root = document.documentElement;
+
+    // Set template data attribute and theme classes
+    root.setAttribute('data-template', template);
+
     if (theme === 'dark') {
       root.classList.add('dark');
       root.classList.remove('light');
@@ -25,19 +35,38 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       root.classList.add('light');
       root.classList.remove('dark');
     }
+
+    localStorage.setItem('cnip_template', template);
     localStorage.setItem('cnip_theme', theme);
-  }, [theme]);
+  }, [template, theme]);
 
   const toggleTheme = () => {
-    setThemeState((prev) => (prev === 'dark' ? 'light' : 'dark'));
+    setTemplateState((prev) => (prev === 'cyber-dark' ? 'clean-light' : 'cyber-dark'));
+  };
+
+  const toggleTemplate = () => {
+    setTemplateState((prev) => (prev === 'cyber-dark' ? 'clean-light' : 'cyber-dark'));
   };
 
   const setTheme = (newTheme: Theme) => {
-    setThemeState(newTheme);
+    setTemplateState(newTheme === 'dark' ? 'cyber-dark' : 'clean-light');
+  };
+
+  const setTemplate = (newTemplate: TemplateId) => {
+    setTemplateState(newTemplate);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        template,
+        toggleTheme,
+        setTheme,
+        setTemplate,
+        toggleTemplate,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );
@@ -50,4 +79,3 @@ export const useTheme = (): ThemeContextType => {
   }
   return context;
 };
-

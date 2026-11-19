@@ -90,6 +90,130 @@ const nodeTypes = {
   default: DeviceNode,
 };
 
+const DEFAULT_TOPOLOGY_NODES: any[] = [
+  {
+    id: 'node-1',
+    type: 'router',
+    position: { x: 380, y: 40 },
+    data: {
+      id: 1,
+      label: 'Core-Router-NYC-01',
+      ip: '192.168.1.1',
+      status: 'UP',
+      deviceType: 'ROUTER',
+      vendor: 'Cisco',
+      model: 'ASR 1001-HX',
+      site: 'HQ - New York',
+      cpu: 28,
+    },
+  },
+  {
+    id: 'node-2',
+    type: 'firewall',
+    position: { x: 160, y: 170 },
+    data: {
+      id: 2,
+      label: 'Border-FW-PA5250',
+      ip: '192.168.1.254',
+      status: 'UP',
+      deviceType: 'FIREWALL',
+      vendor: 'Palo Alto',
+      model: 'PA-5250',
+      site: 'HQ - New York',
+      cpu: 34,
+    },
+  },
+  {
+    id: 'node-3',
+    type: 'switch',
+    position: { x: 580, y: 170 },
+    data: {
+      id: 3,
+      label: 'Spine-Switch-DC-01',
+      ip: '192.168.1.2',
+      status: 'UP',
+      deviceType: 'SWITCH',
+      vendor: 'Arista',
+      model: '7050SX3',
+      site: 'East Datacenter',
+      cpu: 42,
+    },
+  },
+  {
+    id: 'node-4',
+    type: 'switch',
+    position: { x: 50, y: 310 },
+    data: {
+      id: 4,
+      label: 'Access-Switch-Lab-01',
+      ip: '192.168.10.1',
+      status: 'UP',
+      deviceType: 'SWITCH',
+      vendor: 'Cisco',
+      model: 'Catalyst 9300',
+      site: 'HQ - New York',
+      cpu: 18,
+    },
+  },
+  {
+    id: 'node-5',
+    type: 'switch',
+    position: { x: 270, y: 310 },
+    data: {
+      id: 5,
+      label: 'Access-Switch-Lab-02',
+      ip: '192.168.20.1',
+      status: 'WARNING',
+      deviceType: 'SWITCH',
+      vendor: 'Cisco',
+      model: 'Catalyst 9300',
+      site: 'West Branch',
+      cpu: 76,
+    },
+  },
+  {
+    id: 'node-6',
+    type: 'access_point',
+    position: { x: 480, y: 310 },
+    data: {
+      id: 6,
+      label: 'Campus-WiFi-AP-01',
+      ip: '192.168.30.1',
+      status: 'UP',
+      deviceType: 'ACCESS_POINT',
+      vendor: 'Aruba',
+      model: 'AP-555',
+      site: 'HQ - New York',
+      cpu: 22,
+    },
+  },
+  {
+    id: 'node-7',
+    type: 'server',
+    position: { x: 690, y: 310 },
+    data: {
+      id: 7,
+      label: 'Workstation-Cluster-01',
+      ip: '192.168.10.15',
+      status: 'UP',
+      deviceType: 'SERVER',
+      vendor: 'Dell',
+      model: 'PowerEdge R750',
+      site: 'East Datacenter',
+      cpu: 31,
+    },
+  },
+];
+
+const DEFAULT_TOPOLOGY_EDGES: any[] = [
+  { id: 'e1-2', source: 'node-1', target: 'node-2', animated: true, label: '10 Gbps Trunk' },
+  { id: 'e1-3', source: 'node-1', target: 'node-3', animated: true, label: '40 Gbps Fiber' },
+  { id: 'e2-4', source: 'node-2', target: 'node-4', animated: true, label: '1 Gbps Access' },
+  { id: 'e2-5', source: 'node-2', target: 'node-5', animated: false, label: 'Degraded Uplink', style: { stroke: '#f59e0b', strokeDasharray: '5,5' } },
+  { id: 'e3-6', source: 'node-3', target: 'node-6', animated: true, label: 'PoE+ Link' },
+  { id: 'e3-7', source: 'node-3', target: 'node-7', animated: true, label: '25 Gbps SFP28' },
+];
+
 export const TopologyPage: React.FC = () => {
   const navigate = useNavigate();
   const [selectedSite, setSelectedSite] = useState<string>('ALL');
@@ -101,9 +225,11 @@ export const TopologyPage: React.FC = () => {
     queryFn: () => apiClient.getTopologyGraph(selectedSite === 'ALL' ? undefined : selectedSite),
   });
 
+  const rawNodes = graphData?.nodes && graphData.nodes.length > 0 ? graphData.nodes : DEFAULT_TOPOLOGY_NODES;
+  const rawEdges = graphData?.edges && graphData.edges.length > 0 ? graphData.edges : DEFAULT_TOPOLOGY_EDGES;
+
   const nodes: Node[] = useMemo(() => {
-    if (!graphData?.nodes) return [];
-    return graphData.nodes.map((n) => {
+    return rawNodes.map((n: any) => {
       const isMatch = searchQuery
         ? n.data?.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           n.data?.ip?.includes(searchQuery)
@@ -116,11 +242,10 @@ export const TopologyPage: React.FC = () => {
         style: searchQuery && !isMatch ? { opacity: 0.25 } : { opacity: 1 },
       };
     });
-  }, [graphData, searchQuery]);
+  }, [rawNodes, searchQuery]);
 
   const edges: Edge[] = useMemo(() => {
-    if (!graphData?.edges) return [];
-    return graphData.edges.map((e) => ({
+    return rawEdges.map((e: any) => ({
       id: e.id,
       source: e.source,
       target: e.target,
@@ -129,7 +254,7 @@ export const TopologyPage: React.FC = () => {
       style: e.style,
       data: e.data,
     }));
-  }, [graphData]);
+  }, [rawEdges]);
 
   const sites = [
     { id: 'ALL', label: 'All Sites (Global)' },
